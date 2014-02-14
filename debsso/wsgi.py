@@ -48,6 +48,14 @@ base_application = get_wsgi_application()
 # a terribly frustrating experience.
 import re
 def application(environ, start_response):
+    import datetime, os
+    now = datetime.datetime.utcnow()
+    with open("/tmp/sso-log-wsgi", "at") as fd:
+        os.fchmod(fd.fileno(), 0640)
+        print("--- {}".format(now.strftime("%Y-%m-%d %H:%M:%S")), file=fd)
+        for k, v in environ.iteritems():
+            print("ENV {} -> {}".format(k, v), file=fd)
+
     # Replace : with | in DACS cookies
     re_cleancookies = re.compile(r"\bDACS:[^=]+")
     re_uncleancookies = re.compile(r"^DACS|[^=]+")
