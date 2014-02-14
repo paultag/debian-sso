@@ -40,4 +40,14 @@ Logged in as <b>{{dacs_user}}</b>.
   </form>
 {% endif %}
 
+
+<pre>
+{% for k, v in get_vars %}
+GET {{k}} {{v}}
+{% endfor %}
+{% for k, v in env_vars %}
+ENV {{k}} {{v}}
+{% endfor %}
+</pre>
+
 {% endblock %}
