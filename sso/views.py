@@ -99,6 +99,6 @@ def logout(request):
         if not k.startswith("DACS"): continue
         ## DACS Cookies contain ":" characters, which are not allowed in cookies.
         ## However, our WSGI wrapper converts those to |
-        res.delete_cookie(k)
+        res.delete_cookie(k, domain=".debian.org")
 
     return res
