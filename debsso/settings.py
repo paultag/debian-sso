@@ -38,6 +38,7 @@ INSTALLED_APPS = (
     'django.contrib.messages',
     'django.contrib.staticfiles',
     'deblayout',
+    'debssolayout',
 )
 
 MIDDLEWARE_CLASSES = (
@@ -72,6 +73,7 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/1.6/howto/static-files/
 
 STATIC_URL = '/static/'
+
 
 # Try importing local settings from local_settings.py, if we can't, it's just
 # fine, use defaults from this file

@@ -1,0 +1,56 @@
+{% extends "debian-base.html" %}
+
+{% block title %}Debian Single Signon{% endblock %}
+
+{% block head_meta %}
+<link rev="made" href="mailto:nm@debian.org">
+<meta name="Language" content="English">
+<meta name="Author"   content="Enrico Zini, enrico@debian.org">
+{% endblock %}
+
+{% block head_resources %}
+  {{block.super}}
+  <link type="text/css" rel="stylesheet" media="all" href="{{ STATIC_URL }}css/dc.css">
+{% endblock %}
+
+{% comment %}
+{% block section %}<a href="{% url 'contributors' %}">Debian Contributors</a>{% endblock %}
+{% endcomment %}
+
+{% block searchbox %}
+{% comment %}No search feature in NM site yet{% endcomment %}
+{% endblock %}
+
+{% block navbar %}
+{% comment %}
+  <li><a href="{% url 'sources_list' %}">Data sources</a></li>
+  <li><a href="{% url 'site_status' %}">Site status</a></li>
+{% endcomment %}
+{% endblock %}
+
+{% comment %}
+{% block breadcrumbs %}<a href="{% url 'contributors' %}">contributors</a>{% endblock %}
+{% endcomment %}
+
+{% block relatedpages %}
+{% comment %}
+{% if user.is_anonymous %}
+<a href="{% url 'login_redirect' %}?url={{request.build_absolute_uri}}">login with Debian web password</a>
+{% else %}
+<a href="{#% url '' %#}">{{user}}</a>
+<a href="https://sso.debian.org/cgi-bin/dacs/dacs_signout?SIGNOUT_HANDLER={{request.build_absolute_uri}}">logout</a>
+{% endif %}
+{% endcomment %}
+{% endblock %}
+
+{% block content %}
+<h1>Debian Single Signon Website Template</h1>
+{% endblock %}
+
+{% block footer %}
+<p>Copyright © 2014 Enrico Zini &lt;enrico@debian.org&gt;. See <a href="{% url 'root_license' %}">license terms</a>.
+Source code is <a href="http://anonscm.debian.org/gitweb/?p=nm/dc.git;a=summary">here</a>, to help see
+<a href="https://wiki.debian.org/Teams/FrontDesk/DcSiteDevel">here</a>.
+Please report bugs against the <a href="http://bugs.debian.org/nm.debian.org">nm.debian.org</a> pseudo-package.
+</p>
+{% endblock %}
