@@ -14,6 +14,11 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 
+import sys
+project_root = '/srv/sso.debian.org/debsso'
+if project_root not in sys.path:
+    sys.path.append(project_root)
+
 import os
 os.environ.setdefault("DJANGO_SETTINGS_MODULE", "debsso.settings")
 
