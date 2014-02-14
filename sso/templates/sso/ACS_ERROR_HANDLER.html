@@ -7,11 +7,13 @@
 <div class="warning">
    <h1>Access denied.</h2>
     You are currently not logged in or your account is not allowed to access
+{% comment %}
 % if( $c->stash->{DACS_ERROR_URL} ) {
         <b><% $c->stash->{DACS_ERROR_URL} %></b>.
 % } else {
         the requested URL.
 % }
+{% endcomment %}
 
 <%method error_code><% $c->stash->{DACS_ERROR_CODE} ? "(DACS Code " . $c->stash->{DACS_ERROR_CODE}. ")" : "" %></%method>
 
@@ -35,9 +37,11 @@
   <input type="hidden" name="ENABLE_AUTH_HANDLERS" value="1">
   <input type="hidden" name="DACS_JURISDICTION" value="DEBIAN">
   <input type="hidden" name="DACS_AUTH_SUCCESS_HANDLER" value="DACS_ERROR_URL">
+  {% comment %}
   % if( $c->stash->{DACS_ERROR_URL} ) {
   <input type="hidden" name="DACS_ERROR_URL" value="<% $c->stash->{DACS_ERROR_URL} %>">
   % }
+  {% endcomment %}
 </form>
 
 {% endblock %}

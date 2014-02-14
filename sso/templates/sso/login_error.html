@@ -25,10 +25,12 @@ The username / password combination you entered is invalid. Please try again.
     <input type="hidden" name="DACS_BROWSER" value="1">
     <input type="hidden" name="ENABLE_AUTH_HANDLERS" value="1">
     <input type="hidden" name="DACS_JURISDICTION" value="DEBIAN">
+{% comment %}
 % if( $c->stash->{DACS_ERROR_URL} ) {
     <input type="hidden" name="DACS_AUTH_SUCCESS_HANDLER" value="DACS_ERROR_URL">
     <input type="hidden" name="DACS_ERROR_URL" value="<% $c->stash->{DACS_ERROR_URL} %>">
 % }
+{% endcomment %}
    </form>
 
 {% endblock %}
