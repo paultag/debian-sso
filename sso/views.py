@@ -26,8 +26,9 @@ def acs_error(request):
     """
     Access denied / login required page
     """
+    from .dacs_codes import error_for_code
     return render(request, "sso/login.html", {
-        "dacs_error": request.GET.get("DACS_ERROR_CODE"),
+        "dacs_error": error_for_code(request.GET.get("DACS_ERROR_CODE", None)),
         "dacs_error_url": request.GET.get("DACS_ERROR_URL"),
     })
 

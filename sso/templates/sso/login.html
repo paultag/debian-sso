@@ -7,10 +7,16 @@
 
 {% if dacs_error %}
 <div class="warning">
-   <h1>Access denied.</h2>
-   <p>You are currently not logged in or your account is not allowed to access
-   {{dacs_error_url|default:"the requested URL"}}.</p>
-   <p>{{dacs_error}}</p>
+  {% if dacs_error.tag == "NO_AUTH" %}
+  <h1>Login required</h1>
+  {% else %}
+  <h1>{{dacs_error.sdesc}}</h1>
+  <p>{{dacs_error.ldesc}}</p>
+  {% endif %}
+
+  {% if dacs_error_url %}
+  <p>For access to <tt>{{dacs_error_url|default:"the requested URL"}}.</tt></p>
+  {% endif %}
 </div>
 {% endif %}
 
