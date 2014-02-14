@@ -1,3 +1,4 @@
+# coding: utf8
 # Debian Single Signon front-end
 #
 # Copyright (C) 2014  Enrico Zini <enrico@debian.org>
@@ -15,6 +16,10 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
 from django.shortcuts import render
 
 def acs_error(request):
@@ -33,36 +38,33 @@ def login_error(request):
     })
 
 def login(request):
+    dacs_user = request.environ.get("DACS_USERNAME", None)
+
 #        if ( $ENV{DACS_USERNAME} ) {
 #                $c->stash->{title}      = "Login: Logged in as $ENV{DACS_USERNAME}";
 #        } else {
 #                $c->stash->{title}    = "Login";
-#                $c->stash->{hide_loginbox} = 1;
 #        }
     return render(request, "sso/login.html", {
+        "dacs_user": dacs_user,
     })
 
 def logout(request):
-#        foreach my $cookie ( keys %{ $c->request->cookies } ) {
-#                if ( $cookie =~ /^DACS/ ) {
-#                        ## DACS Cookies contain ":" characters, which are not allowed in cookies.
-#                        ## CGI::Cookie encodes the ":" resulting in cookies not beind properly
-#                        ## expired. So we have to expire the cookie ourselves by directly manipulating
-#                        ## the response header.
-#                        my $cgi_cookie = $c->request->cookies->{$cookie};
-#                        my $domain     = $c->request->uri->host;
-#                        $domain =~ s/.*(\.[a-z,0-9,-]+\.[a-z,0-9,-]+)$/$1/;
-#                        $c->res->headers->push_header(
-#                                                               'Set-Cookie' => $cgi_cookie->name . "="
-#                                                                 . $cgi_cookie->value
-#                                                                 . "; path=/; domain="
-#                                                                 . $domain
-#                                                                 . ";  expires=Thu, 01-Jan-1970 00:00:01 GMT" );
-#                }
-#        }
-#
-#        $c->stash->{message}  = "User logged out.";
-#        $c->stash->{hide_loginbox} = 1;
-#}
-    return render(request, "sso/login.html", {
+    # $c->stash->{message}  = "User logged out.";
+    # $c->stash->{hide_loginbox} = 1;
+
+    res = render(request, "sso/login.html", {
     })
+
+    #test_cookies = {
+    #    "DACS|DEBIANORG||DEBIAN|enrico": "foo",
+    #    "DACS|DEBIANORG||DEBIAN|foobar": "foo"
+    #}
+    #for k, v in test_cookies.iteritems():
+    for k, v in request.COOKIES.iteritems():
+        if not k.startswith("DACS"): continue
+        ## DACS Cookies contain ":" characters, which are not allowed in cookies.
+        ## However, our WSGI wrapper converts those to |
+        res.delete_cookie(k)
+
+    return res
