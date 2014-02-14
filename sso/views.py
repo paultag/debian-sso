@@ -20,7 +20,7 @@ from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
-from django.shortcuts import render
+from django.shortcuts import render, redirect
 
 def _dump_args(request, tag):
     import datetime, os
@@ -32,6 +32,8 @@ def _dump_args(request, tag):
             print("GET {} -> {}".format(k, v), file=fd)
         for k, v in request.environ.iteritems():
             print("ENV {} -> {}".format(k, v), file=fd)
+        for k, v in request.COOKIES.iteritems():
+            print("COOKIE {} -> {}".format(k, v), file=fd)
 
 def acs_error(request):
     """
@@ -77,11 +79,16 @@ def logout(request):
     Logout page
     """
     _dump_args(request, "logout")
+    next_url = request.GET.get("url", None)
+
     # $c->stash->{message}  = "User logged out.";
     # $c->stash->{hide_loginbox} = 1;
 
-    res = render(request, "sso/login.html", {
-    })
+    if next_url:
+        res = redirect(next_url)
+    else:
+        res = render(request, "sso/login.html", {
+        })
 
     #test_cookies = {
     #    "DACS|DEBIANORG||DEBIAN|enrico": "foo",
