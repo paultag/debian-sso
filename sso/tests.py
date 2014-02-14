@@ -18,6 +18,12 @@ class SSOTestCase(TestCase):
         self.assert_('logged-in-name' in response.content)
         self.assert_('<h1>Access denied.</h1>' not in response.content)
 
+        # When authenticated and we have a next url, we redirect
+        response = c.get(reverse('sso_login'), data={"url": "http://www.example.org"},
+                         DACS_USERNAME="logged-in-name")
+        self.assertEquals(response.status_code, 302)
+        self.assertEquals(response["Location"], "http://www.example.org")
+
     def test_acs_error(self):
         # When not authenticated, we get the login form
         c = Client()

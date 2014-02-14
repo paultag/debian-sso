@@ -69,6 +69,9 @@ def login(request):
     dacs_user = request.environ.get("DACS_USERNAME", None)
     next_url = request.GET.get("url", None)
 
+    if dacs_user is not None and next_url:
+        return redirect(next_url)
+
     return render(request, "sso/login.html", {
         "dacs_user": dacs_user,
         "next_url": next_url,
