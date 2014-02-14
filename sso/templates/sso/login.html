@@ -1,39 +1,9 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
-<html lang="en">
- <head>
-   <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
-   <title>Debian -- SSO</title>
-   <link rev="made" href="mailto:webmaster@debian.org">
-   <meta name="viewport" content="width=device-width">
-   <meta name="mobileoptimized" content="300">
-   <meta name="HandheldFriendly" content="true">
-   <link href="static/debian.css" rel="stylesheet" type="text/css">
-   <link href="static/debian-en.css" rel="stylesheet" type="text/css" media="all">
- </head>
- <body>
-  <div id="header">
-   <div id="upperheader">
-     <div id="logo">
-       <a href="../" title="Debian Home"><img src="static/Pics/openlogo-50.png" alt="Debian" width="50" height="61"></a>
-     </div> <!-- end logo -->
-     <p class="section"><a href="/sso/">sso</a></p>
-    </div> <!-- end upperheader -->
-    <!--UdmComment-->
-    <div id="navbar">
-     <p class="hidecss"><a href="#content">Skip Quicknav</a></p>
-     <ul>
-      <li><a href="http://www.debian.org/intro/about">About Debian</a></li>
-     </ul>
-    </div> <!-- end navbar -->
-    <p id="breadcrumbs">
-     Debian Single-Sign-On
-    </p>
-   </div> <!-- end header -->
-  <!--/UdmComment-->
-  <div id="content">
-   <h1 class="announce">
-    Debian Single Sign On
-   </h1>
+{% extends "debsso-base.html" %}
+
+{% block content %}
+
+<h1 class="announce">Debian Single Sign On</h1>
+
 % if ( $ENV{"DACS_USERNAME"} eq "" ) {
 
    <form name="loginForm" method="POST" action="/cgi-bin/dacs/dacs_authenticate" autocomplete="off">
@@ -64,11 +34,5 @@
         <h4><% $ENV{"DACS_USERNAME"} %></h4>
         <input type="button" name="logout" class="highlight" onClick="top.location.href='/cgi-bin/dacs/dacs_signout'" value="Logout...">
 % }
-   <div>
-   <h3>What is this?</h3>
-    <p>This is Debian's web signon service. You can find some documentation on <a href="http://wiki.debian.org/DebianSingleSignOn">this wiki page</a>.</p>
-    <p>If you are Debian Developer you can set your SSO password on <a href="https://db.debian.org/">https://db.debian.org/</a>. It is different to your db.debian.org password!</p>
-   </div>
-  </div> <!-- end content -->
- </body>
-</html>
+
+{% endblock %}
