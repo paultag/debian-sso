@@ -22,10 +22,21 @@ from __future__ import division
 from __future__ import unicode_literals
 from django.shortcuts import render
 
+def _dump_args(request, tag):
+    import datetime
+    now = datetime.datetime.utcnow()
+    with open("/tmp/sso-log-" + tag, "at") as fd:
+        print("--- {}".format(now.strftime("%Y-%m-%d %H:%M:%S")), file=fd)
+        for k, v in request.GET.iteritems():
+            print("GET {} -> {}".format(k, v), file=fd)
+        for k, v in request.environ.iteritems():
+            print("ENV {} -> {}".format(k, v), file=fd)
+
 def acs_error(request):
     """
     Access denied / login required page
     """
+    _dump_args(request, "acs_error")
     from .dacs_codes import error_for_code
     return render(request, "sso/login.html", {
         "dacs_error": error_for_code(request.GET.get("DACS_ERROR_CODE", None)),
@@ -36,6 +47,7 @@ def login_error(request):
     """
     Error posting login info
     """
+    _dump_args(request, "login_error")
 #        if ( $c->req->param('DACS_ERROR_URL') ) {
 #                $c->stash->{DACS_ERROR_URL} = $tf->filter($c->req->param('DACS_ERROR_URL'));
 #        }
@@ -46,8 +58,9 @@ def login(request):
     """
     Plain login page
     """
+    _dump_args(request, "login")
     dacs_user = request.environ.get("DACS_USERNAME", None)
-    next_url = request.environ.get("url", None)
+    next_url = request.GET.get("url", None)
 
     return render(request, "sso/login.html", {
         "dacs_user": dacs_user,
@@ -58,6 +71,7 @@ def logout(request):
     """
     Logout page
     """
+    _dump_args(request, "logout")
     # $c->stash->{message}  = "User logged out.";
     # $c->stash->{hide_loginbox} = 1;
 
