@@ -47,14 +47,11 @@ def login(request):
     Plain login page
     """
     dacs_user = request.environ.get("DACS_USERNAME", None)
+    next_url = request.environ.get("url", None)
 
-#        if ( $ENV{DACS_USERNAME} ) {
-#                $c->stash->{title}      = "Login: Logged in as $ENV{DACS_USERNAME}";
-#        } else {
-#                $c->stash->{title}    = "Login";
-#        }
     return render(request, "sso/login.html", {
         "dacs_user": dacs_user,
+        "next_url": next_url,
     })
 
 def logout(request):

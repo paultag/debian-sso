@@ -45,12 +45,10 @@ Logged in as <b>{{dacs_user}}</b>.
     <input type="hidden" name="DACS_BROWSER" value="1">
     <input type="hidden" name="ENABLE_AUTH_HANDLERS" value="1">
     <input type="hidden" name="DACS_JURISDICTION" value="DEBIAN">
-{% comment %}
-% if( $c->stash->{DACS_ERROR_URL} ) {
-    <input type="hidden" name="DACS_AUTH_SUCCESS_HANDLER" value="DACS_ERROR_URL">
-    <input type="hidden" name="DACS_ERROR_URL" value="<% $c->stash->{DACS_ERROR_URL} %>">
-% }
-{% endcomment %}
+    {% if next_url %}
+    <input type="hidden" name="DACS_AUTH_SUCCESS_HANDLER" value="{{next_url}}">
+    <input type="hidden" name="DACS_ERROR_URL" value="{{next_url}}">
+    {% endif %}
     <p>You can set your SSO password on <a href="https://db.debian.org/">https://db.debian.org/</a>. Note that it is <em>different</em> than your db.debian.org password.</p>
   </form>
 {% endif %}
