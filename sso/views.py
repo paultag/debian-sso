@@ -37,8 +37,8 @@ def acs_error(request):
     """
     Access denied / login required page
     """
-    _dump_args(request, "acs_error")
     from .dacs_codes import error_for_code
+    _dump_args(request, "acs_error")
     return render(request, "sso/login.html", {
         "dacs_error": error_for_code(request.GET.get("DACS_ERROR_CODE", None)),
         "dacs_error_url": request.GET.get("DACS_ERROR_URL"),
@@ -48,12 +48,14 @@ def login_error(request):
     """
     Error posting login info
     """
+    from .dacs_codes import error_for_code
     _dump_args(request, "login_error")
     next_url = request.GET.get("DACS_AUTH_SUCCESS_HANDLER", None)
 #        if ( $c->req->param('DACS_ERROR_URL') ) {
 #                $c->stash->{DACS_ERROR_URL} = $tf->filter($c->req->param('DACS_ERROR_URL'));
 #        }
-    return render(request, "sso/login_error.html", {
+    return render(request, "sso/login.html", {
+        "dacs_error": error_for_code(request.GET.get("DACS_ERROR_CODE", None)),
         "next_url": next_url,
     })
 

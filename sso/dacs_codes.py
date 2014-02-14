@@ -26,6 +26,10 @@ from collections import namedtuple
 DacsErrorCode = namedtuple("DacsErrorCode", ("code", "tag", "sdesc", "ldesc"))
 
 all_codes = (
+    DacsErrorCode(800, "AUTH_FAILED", _("Authentication failed"), _("Invalid authenticating information")),
+    DacsErrorCode(801, "AUTH_FAILED_EINVAL", _("Authentication failed"), _("Invalid argument")),
+    DacsErrorCode(802, "AUTH_FAILED_500", _("Authentication failed"), _("Internal error")),
+    DacsErrorCode(899, "AUTH_FAILED_UNKNOWN", _("Authentication failed"), _("Reason unknown")),
     DacsErrorCode(900, "NO_RULE", _("Access denied, no applicable rule"),
                   _("All rules were examined but no rule applies to the service request.")),
     DacsErrorCode(901, "BY_RULE", _("Access denied, forbidden by rule"),
