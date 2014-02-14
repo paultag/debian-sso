@@ -23,14 +23,18 @@ from __future__ import unicode_literals
 from django.shortcuts import render
 
 def acs_error(request):
-    return render(request, "sso/ACS_ERROR_HANDLER.html", {
-#        $c->stash->{DACS_ERROR_URL} = $tf->filter($c->req->param('DACS_ERROR_URL'))
-#          if ( $c->req->param('DACS_ERROR_URL') );
-#        $c->stash->{DACS_ERROR_CODE} = $c->req->param('DACS_ERROR_CODE')
-#          if ( $c->req->param('DACS_ERROR_CODE') );
+    """
+    Access denied / login required page
+    """
+    return render(request, "sso/login.html", {
+        "dacs_error": request.GET.get("DACS_ERROR_CODE"),
+        "dacs_error_url": request.GET.get("DACS_ERROR_URL"),
     })
 
 def login_error(request):
+    """
+    Error posting login info
+    """
 #        if ( $c->req->param('DACS_ERROR_URL') ) {
 #                $c->stash->{DACS_ERROR_URL} = $tf->filter($c->req->param('DACS_ERROR_URL'));
 #        }
@@ -38,6 +42,9 @@ def login_error(request):
     })
 
 def login(request):
+    """
+    Plain login page
+    """
     dacs_user = request.environ.get("DACS_USERNAME", None)
 
 #        if ( $ENV{DACS_USERNAME} ) {
@@ -50,6 +57,9 @@ def login(request):
     })
 
 def logout(request):
+    """
+    Logout page
+    """
     # $c->stash->{message}  = "User logged out.";
     # $c->stash->{hide_loginbox} = 1;
 

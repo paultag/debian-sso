@@ -5,6 +5,15 @@
 
 <h1 class="announce">Debian Single Sign On</h1>
 
+{% if dacs_error %}
+<div class="warning">
+   <h1>Access denied.</h2>
+   <p>You are currently not logged in or your account is not allowed to access
+   {{dacs_error_url|default:"the requested URL"}}.</p>
+   <p>{{dacs_error}}</p>
+</div>
+{% endif $}
+
 {% if dacs_user %}
 Logged in as <b>{{dacs_user}}</b>.
 
