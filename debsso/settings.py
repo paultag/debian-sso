@@ -20,7 +20,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(__file__))
 SECRET_KEY = '#7&j(f5&bze3#m6tt5-v%2fb-$$-0n(u-5x_1_a@1rvgev87i6'
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = True
+DEBUG = False
 
 TEMPLATE_DEBUG = True
 
@@ -81,3 +81,10 @@ USE_TZ = True
 # https://docs.djangoproject.com/en/1.6/howto/static-files/
 
 STATIC_URL = '/static/'
+
+# Try importing local settings from local_settings.py, if we can't, it's just
+# fine, use defaults from this file
+try:
+    from debsso.local_settings import *
+except:
+    pass
