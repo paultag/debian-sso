@@ -49,10 +49,12 @@ def login_error(request):
     Error posting login info
     """
     _dump_args(request, "login_error")
+    next_url = request.GET.get("DACS_AUTH_SUCCESS_HANDLER", None)
 #        if ( $c->req->param('DACS_ERROR_URL') ) {
 #                $c->stash->{DACS_ERROR_URL} = $tf->filter($c->req->param('DACS_ERROR_URL'));
 #        }
     return render(request, "sso/login_error.html", {
+        "next_url": next_url,
     })
 
 def login(request):
