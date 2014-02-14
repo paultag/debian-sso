@@ -15,17 +15,12 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with this program.  If not, see <http://www.gnu.org/licenses/>.
 
-from django.conf.urls import patterns, include, url
-from django.views.generic import TemplateView
+from django.conf.urls import patterns, url
 
-# from django.contrib import admin
-# admin.autodiscover()
-
-urlpatterns = patterns('',
-    # Examples:
-    # url(r'^$', 'debsso.views.home', name='home'),
-    url(r'^sso/', include('sso.urls')),
-
-    # url(r'^admin/', include(admin.site.urls)),
-    url(r'^license/$', TemplateView.as_view(template_name='license.html'), name="root_license"),
+urlpatterns = patterns('sso.views',
+    url(r'^acs_error$', 'acs_error', name="sso_acs_error"),
+    url(r'^login_error$', 'login_error', name="sso_login_error"),
+    url(r'^login$', 'login', name="sso_login"),
+    url(r'^logout$', 'logout', name="sso_logout"),
 )
+
