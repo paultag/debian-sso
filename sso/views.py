@@ -23,9 +23,10 @@ from __future__ import unicode_literals
 from django.shortcuts import render
 
 def _dump_args(request, tag):
-    import datetime
+    import datetime, os
     now = datetime.datetime.utcnow()
     with open("/tmp/sso-log-" + tag, "at") as fd:
+        os.fchmod(fd, 0640)
         print("--- {}".format(now.strftime("%Y-%m-%d %H:%M:%S")), file=fd)
         for k, v in request.GET.iteritems():
             print("GET {} -> {}".format(k, v), file=fd)
