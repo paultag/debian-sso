@@ -6,6 +6,8 @@ DATA_DIR = os.path.join(PROJECT_DIR, 'data')
 DEBUG = True
 TEMPLATE_DEBUG = True
 
+# Database
+# https://docs.djangoproject.com/en/1.6/ref/settings/#databases
 DATABASES = {
     'default': {
         'ENGINE': 'django.db.backends.sqlite3', # Add 'postgresql_psycopg2', 'mysql', 'sqlite3' or 'oracle'.
