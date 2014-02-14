@@ -47,8 +47,6 @@ def login(request):
 #        }
     return render(request, "sso/login.html", {
         "dacs_user": dacs_user,
-        "get_vars": request.GET.items(),
-        "env_vars": request.environ.items(),
     })
 
 def logout(request):
