@@ -24,6 +24,8 @@ from django.views.generic import TemplateView
 urlpatterns = patterns('',
     url(r'^$', TemplateView.as_view(template_name='debsso/index.html'), name="home"),
 
+    url(r'^_deploy_info_$', 'deblayout.views.deploy_info'),
+
     url(r'^sso/', include('sso.urls')),
 
     # url(r'^admin/', include(admin.site.urls)),
