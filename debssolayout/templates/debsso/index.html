@@ -1,0 +1,20 @@
+{% extends "debsso-base.html" %}
+{% load i18n %}
+
+{% block content %}
+
+<h1>Debian Single Signon</h1>
+
+{% if request.environ.DACS_USERNAME %}
+<p>You are currently logged in as {{request.environ.DACS_USERNAME}}.</p>
+
+<p><a href="{% url 'sso_logout' %}">Logout</a></p>
+{% else %}
+<p>You are not currently logged in.</p>
+
+<p><a href="{% url 'sso_login' %}">Login</a></p>
+{% endif %}
+
+<a href="http://wiki.debian.org/DebianSingleSignOn">Debian Single Signon information</a>
+
+{% endblock %}

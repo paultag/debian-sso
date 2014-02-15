@@ -22,8 +22,8 @@ from django.views.generic import TemplateView
 # admin.autodiscover()
 
 urlpatterns = patterns('',
-    # Examples:
-    # url(r'^$', 'debsso.views.home', name='home'),
+    url(r'^$', TemplateView.as_view(template_name='debsso/index.html'), name="home"),
+
     url(r'^sso/', include('sso.urls')),
 
     # url(r'^admin/', include(admin.site.urls)),
