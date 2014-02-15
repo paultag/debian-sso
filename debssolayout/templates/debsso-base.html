@@ -33,7 +33,7 @@
 {% if user.is_anonymous %}
 <a href="{% url 'sso_login' %}?url={{request.build_absolute_uri}}">login</a>
 {% else %}
-<a href="{#% url '' %#}">{{user}} @{{request.dacs_jurisdiction|lower}}</a>
+<a href="{#% url '' %#}">{{user}}</a>
 <a href="{% url 'sso_logout' %}?url={{request.build_absolute_uri}}">logout</a>
 {% endif %}
 {% endblock %}

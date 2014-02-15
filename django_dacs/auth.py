@@ -29,7 +29,7 @@ class DACSRemoteUserMiddleware(django.contrib.auth.middleware.RemoteUserMiddlewa
             request.META[self.header] = TEST_REMOTE_USER
 
         try:
-            username = request.META[self.header]
+            dacs_user = request.META[self.header]
         except KeyError:
             # If specified header doesn't exist then return (leaving
             # request.user set to AnonymousUser by the
@@ -41,25 +41,16 @@ class DACSRemoteUserMiddleware(django.contrib.auth.middleware.RemoteUserMiddlewa
                 auth.logout(request)
             return
 
-        dacs_info = DACSInfo(*username.split(":"))
-        request.dacs_jurisdiction = dacs_info.jurisdiction
-
-        # Enforce that Alioth is used only for -guest users
-        if dacs_info.jurisdiction == "ALIOTH" and not dacs_info.username.endswith("-guest"):
-            if request.user.is_authenticated():
-                auth.logout(request)
-            return
-
         # If the user is already authenticated and that user is the user we are
         # getting passed in the headers, then the correct user is already
         # persisted in the session and we don't need to continue.
         if request.user.is_authenticated():
-            if request.user.username == self.clean_username(username, request):
+            if request.user.email == self.clean_username(dacs_user, request):
                 return
 
         # We are seeing this user for the first time in this session, attempt
         # to authenticate the user.
-        user = auth.authenticate(remote_user=username)
+        user = auth.authenticate(remote_user=dacs_user)
         if user:
             # User is valid.  Set request.user and persist user in the session
             # by logging the user in.
@@ -70,6 +61,10 @@ class DACSUserBackend(django.contrib.auth.backends.RemoteUserBackend):
     """
     RemoteUserBackend customised to create User objects from Person
     """
+    JURISDICTION_DOMAIN_MAP = {
+        "DEBIAN": "@debian.org",
+        "ALIOTH": "@users.alioth.debian.org",
+    }
 
     def split_dacs_user(self, username):
         return DACSInfo(*username.split(":"))
@@ -81,4 +76,4 @@ class DACSUserBackend(django.contrib.auth.backends.RemoteUserBackend):
         """
         # Take the username out of DACS parts
         info = self.split_dacs_user(username)
-        return info.username
+        return info.username + self.JURISDICTION_DOMAIN_MAP[info.jurisdiction]

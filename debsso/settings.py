@@ -88,6 +88,7 @@ USE_TZ = True
 
 STATIC_URL = '/static/'
 
+AUTH_USER_MODEL = 'sso.User'
 
 # Try importing local settings from local_settings.py, if we can't, it's just
 # fine, use defaults from this file
