@@ -26,4 +26,7 @@ def deploy():
             sudo("git pull --rebase", user=REMOTE_USER)
         sudo("./manage.py collectstatic --noinput", user=REMOTE_USER)
         sudo("./manage.py migrate", user=REMOTE_USER)
+        sudo("psql service=debsso -c 'grant select,insert,update,delete on all tables in schema public to debssoweb'",
+             user=REMOTE_USER)
+        sudo("psql service=debsso -c 'grant usage on all sequences in schema public to debssoweb'", user=REMOTE_USER)
         sudo("touch debsso/wsgi.py", user=REMOTE_USER)
