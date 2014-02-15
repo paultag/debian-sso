@@ -4,7 +4,7 @@ from django.conf import settings
 from collections import namedtuple
 
 # Name the various bits of information DACS gives us
-DACSInfo = namedtuple('DACSInfo', ('unknown0', 'unknown1', "jurisdiction", "username"))
+DACSInfo = namedtuple('DACSInfo', ('federation', 'unknown1', "jurisdiction", "username"))
 
 TEST_REMOTE_USER = getattr(settings, "DACS_TEST_USERNAME", None)
 
@@ -41,12 +41,22 @@ class DACSRemoteUserMiddleware(django.contrib.auth.middleware.RemoteUserMiddlewa
                 auth.logout(request)
             return
 
+        dacs_info = DACSInfo(*username.split(":"))
+        request.dacs_jurisdiction = dacs_info.jurisdiction
+
+        # Enforce that Alioth is used only for -guest users
+        if dacs_info.jurisdiction == "ALIOTH" and not dacs_info.username.endswith("-guest"):
+            if request.user.is_authenticated():
+                auth.logout(request)
+            return
+
         # If the user is already authenticated and that user is the user we are
         # getting passed in the headers, then the correct user is already
         # persisted in the session and we don't need to continue.
         if request.user.is_authenticated():
             if request.user.username == self.clean_username(username, request):
                 return
+
         # We are seeing this user for the first time in this session, attempt
         # to authenticate the user.
         user = auth.authenticate(remote_user=username)
