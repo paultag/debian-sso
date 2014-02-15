@@ -58,13 +58,13 @@ class SSOTestCase(TestCase):
         response = c.get(reverse("sso_logout"), DACS_USERNAME="foo")
         self.assertEquals(response.status_code, 302)
         self.assertEquals(response["Location"], "http://testserver/cgi-bin/dacs/dacs_signout")
-        self.assertNotIn("next_url", c.session)
+        self.assertNotIn("debsso_logout_next_url", c.cookies)
 
         # Back from logout, redirect to home
         response = c.get(reverse("sso_logout"))
         self.assertEquals(response.status_code, 302)
-        self.assertEquals(response["Location"], reverse("home"))
-        self.assertNotIn("next_url", c.session)
+        self.assertEquals(response["Location"], "http://testserver/")
+        self.assertNotIn("debsso_logout_next_url", c.cookies)
 
     def test_logout_url(self):
         # Plain logout, next_url
@@ -72,10 +72,11 @@ class SSOTestCase(TestCase):
         response = c.get(reverse("sso_logout"), data={"url": "http://www.example.org"}, DACS_USERNAME="foo")
         self.assertEquals(response.status_code, 302)
         self.assertEquals(response["Location"], "http://testserver/cgi-bin/dacs/dacs_signout")
-        self.assertIn("next_url", c.session)
+        self.assertIn("debsso_logout_next_url", c.cookies)
 
         # Back from logout, redirect to example.org and clean next_url session
         response = c.get(reverse("sso_logout"))
         self.assertEquals(response.status_code, 302)
         self.assertEquals(response["Location"], "http://www.example.org")
-        self.assertNotIn("next_url", c.session)
+        self.assertIn("debsso_logout_next_url", c.cookies)
+        self.assertEquals(c.cookies["debsso_logout_next_url"]["expires"], "Thu, 01-Jan-1970 00:00:00 GMT")

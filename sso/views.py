@@ -89,17 +89,18 @@ def logout(request):
 
     # Use session as fallback for when next_url is not set
     if next_url is None:
-        next_url = request.session.get("next_url", None)
-    else:
-        request.session["next_url"] = next_url
-
+        next_url = request.COOKIES.get("debsso_logout_next_url", None)
 
     if dacs_user is not None:
-        return redirect("/cgi-bin/dacs/dacs_signout")
+        res = redirect("/cgi-bin/dacs/dacs_signout")
+        if next_url is not None:
+            res.set_cookie("debsso_logout_next_url", next_url, max_age=60)
+        return res
     else:
         if next_url:
-            del request.session["next_url"]
-            return redirect(next_url)
+            res = redirect(next_url)
+            res.delete_cookie("debsso_logout_next_url")
+            return res
         else:
             return redirect("home")
             #render(request, "sso/login.html", {})
