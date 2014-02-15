@@ -1,6 +1,16 @@
 {% extends "debsso-base.html" %}
 {% load url from future %}
 
+{% block head_resources %}
+{{block.super}}
+<style type="text/css">
+div.login_form {
+  float: left;
+  width: 45%;
+}
+</style>
+{% endblock %}
+
 {% block content %}
 
 <h1 class="announce">Debian Single Sign On</h1>
@@ -28,6 +38,8 @@ Logged in as <b>{{dacs_user}}</b>.
 </form>
 
 {% else %}
+<div class="login_form">
+  <h2>Debian login</h2>
   <form name="loginForm" method="POST" action="/cgi-bin/dacs/dacs_authenticate">
     <label for="USERNAME"><b>Username:</b><span class="form_required" title="Needed argument">*</span></label>
     <br />
@@ -41,7 +53,7 @@ Logged in as <b>{{dacs_user}}</b>.
     <br>
     <div class="description">Please enter your password.</div>
     <br>
-    <input type="submit" class="highlight" value="Login...">
+    <input type="submit" class="highlight" value="Login with debian.org account">
     <input type="hidden" name="DACS_BROWSER" value="1">
     <input type="hidden" name="ENABLE_AUTH_HANDLERS" value="1">
     <input type="hidden" name="DACS_JURISDICTION" value="DEBIAN">
@@ -51,6 +63,34 @@ Logged in as <b>{{dacs_user}}</b>.
     {% endif %}
     <p>You can set your SSO password on <a href="https://db.debian.org/">https://db.debian.org/</a>. Note that it is <em>different</em> from your db.debian.org password.</p>
   </form>
+</div>
+
+<div class="login_form">
+  <h2>Alioth login</h2>
+  <form name="loginForm" method="POST" action="https://www.sso.debian.org/cgi-bin/dacs/dacs_authenticate">
+    <label for="USERNAME"><b>Username:</b><span class="form_required" title="Needed argument">*</span></label>
+    <br />
+    <input name="USERNAME" type="text" id="USERNAME" size="30" ><!-- default empty -->
+    <br />
+    <div class="description">Please enter your Debian Username.</div>
+    <br />
+    <label for="PASSWORD"><b>Password:</b><span class="form_required" title="Needed argument">*</span></label>
+    <br>
+    <input name="PASSWORD" type="password" id="PASSWORD" size="30">
+    <br>
+    <div class="description">Please enter your password.</div>
+    <br>
+    <input type="submit" class="highlight" value="Login with Alioth account">
+    <input type="hidden" name="DACS_BROWSER" value="1">
+    <input type="hidden" name="ENABLE_AUTH_HANDLERS" value="1">
+    <input type="hidden" name="DACS_JURISDICTION" value="ALIOTH">
+    {% if next_url %}
+    <input type="hidden" name="DACS_AUTH_SUCCESS_HANDLER" value="{{next_url}}">
+    <input type="hidden" name="DACS_ERROR_URL" value="{{next_url}}">
+    {% endif %}
+    <p>You can set your SSO password on <a href="https://db.debian.org/">https://db.debian.org/</a>. Note that it is <em>different</em> from your db.debian.org password.</p>
+  </form>
+</div>
 {% endif %}
 
 {% endblock %}
