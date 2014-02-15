@@ -25,5 +25,5 @@ def deploy():
         else:
             sudo("git pull --rebase", user=REMOTE_USER)
         sudo("./manage.py collectstatic --noinput", user=REMOTE_USER)
-        #sudo("./manage.py migrate", user=REMOTE_USER)
+        sudo("./manage.py migrate", user=REMOTE_USER)
         sudo("touch debsso/wsgi.py", user=REMOTE_USER)
