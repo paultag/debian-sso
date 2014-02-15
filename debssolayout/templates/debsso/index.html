@@ -6,8 +6,8 @@
 
 <h1>Debian Single Signon</h1>
 
-{% if request.environ.DACS_USERNAME %}
-<p>You are currently logged in as {{request.environ.DACS_USERNAME}}.</p>
+{% if request.user.is_authenticated %}
+<p>You are currently logged in as {{request.user.username}}.</p>
 
 <p><a href="{% url 'sso_logout' %}">Logout</a></p>
 {% else %}
