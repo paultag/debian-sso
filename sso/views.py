@@ -84,26 +84,25 @@ def logout(request):
     Logout page
     """
     _dump_args(request, "logout")
+    dacs_user = request.environ.get("DACS_USERNAME", None)
     next_url = request.GET.get("url", None)
 
-    # $c->stash->{message}  = "User logged out.";
-    # $c->stash->{hide_loginbox} = 1;
-
-    if next_url:
-        res = redirect(next_url)
+    # Use session as fallback for when next_url is not set
+    if next_url is None:
+        next_url = request.session.get("next_url", None)
     else:
-        res = render(request, "sso/login.html", {
-        })
+        request.session["next_url"] = next_url
 
-    #test_cookies = {
-    #    "DACS|DEBIANORG||DEBIAN|enrico": "foo",
-    #    "DACS|DEBIANORG||DEBIAN|foobar": "foo"
-    #}
-    #for k, v in test_cookies.iteritems():
-    for k, v in request.COOKIES.iteritems():
-        if not k.startswith("DACS"): continue
-        ## DACS Cookies contain ":" characters, which are not allowed in cookies.
-        ## However, our WSGI wrapper converts those to |
-        res.delete_cookie(k, domain=".debian.org")
 
-    return res
+    if dacs_user is not None:
+        return redirect("/cgi-bin/dacs/dacs_signout")
+    else:
+        if next_url:
+            del request.session["next_url"]
+            return redirect(next_url)
+        else:
+            return redirect("home")
+            #render(request, "sso/login.html", {})
+
+#    # $c->stash->{message}  = "User logged out.";
+#    # $c->stash->{hide_loginbox} = 1;

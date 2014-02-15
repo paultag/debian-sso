@@ -51,3 +51,31 @@ class SSOTestCase(TestCase):
         self.assert_('<h1>Access denied, user access revoked</h1>' in response.content)
         self.assert_('<form name="loginForm"' in response.content)
         self.assert_('For access to' not in response.content)
+
+    def test_logout_nourl(self):
+        # Plain logout, no next_url
+        c = Client()
+        response = c.get(reverse("sso_logout"), DACS_USERNAME="foo")
+        self.assertEquals(response.status_code, 302)
+        self.assertEquals(response["Location"], "http://testserver/cgi-bin/dacs/dacs_signout")
+        self.assertNotIn("next_url", c.session)
+
+        # Back from logout, redirect to home
+        response = c.get(reverse("sso_logout"))
+        self.assertEquals(response.status_code, 302)
+        self.assertEquals(response["Location"], reverse("home"))
+        self.assertNotIn("next_url", c.session)
+
+    def test_logout_url(self):
+        # Plain logout, next_url
+        c = Client()
+        response = c.get(reverse("sso_logout"), data={"url": "http://www.example.org"}, DACS_USERNAME="foo")
+        self.assertEquals(response.status_code, 302)
+        self.assertEquals(response["Location"], "http://testserver/cgi-bin/dacs/dacs_signout")
+        self.assertIn("next_url", c.session)
+
+        # Back from logout, redirect to example.org and clean next_url session
+        response = c.get(reverse("sso_logout"))
+        self.assertEquals(response.status_code, 302)
+        self.assertEquals(response["Location"], "http://www.example.org")
+        self.assertNotIn("next_url", c.session)
