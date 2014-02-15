@@ -43,13 +43,13 @@ Logged in as <b>{{dacs_user}}</b>.
   <form name="loginForm" method="POST" action="/cgi-bin/dacs/dacs_authenticate">
     <label for="USERNAME"><b>Username:</b><span class="form_required" title="Needed argument">*</span></label>
     <br />
-    <input name="USERNAME" type="text" id="USERNAME" size="30" ><!-- default empty -->
+    <input name="USERNAME" type="text" id="USERNAME" size="30" placeholder="username"><!-- default empty -->
     <br />
     <div class="description">Please enter your Debian Username.</div>
     <br />
     <label for="PASSWORD"><b>Password:</b><span class="form_required" title="Needed argument">*</span></label>
     <br>
-    <input name="PASSWORD" type="password" id="PASSWORD" size="30">
+    <input name="PASSWORD" type="password" id="PASSWORD" size="30" placeholder="password">
     <br>
     <div class="description">Please enter your password.</div>
     <br>
@@ -70,13 +70,13 @@ Logged in as <b>{{dacs_user}}</b>.
   <form name="loginForm" method="POST" action="https://www.sso.debian.org/cgi-bin/dacs/dacs_authenticate">
     <label for="USERNAME"><b>Username:</b><span class="form_required" title="Needed argument">*</span></label>
     <br />
-    <input name="USERNAME" type="text" id="USERNAME" size="30" ><!-- default empty -->
+    <input name="USERNAME" type="text" id="USERNAME" size="30" placeholder="username-guest"><!-- default empty -->
     <br />
     <div class="description">Please enter your Alioth Username, including -guest.</div>
     <br />
     <label for="PASSWORD"><b>Password:</b><span class="form_required" title="Needed argument">*</span></label>
     <br>
-    <input name="PASSWORD" type="password" id="PASSWORD" size="30">
+    <input name="PASSWORD" type="password" id="PASSWORD" size="30" placeholder="password">
     <br>
     <div class="description">Please enter your password.</div>
     <br>
