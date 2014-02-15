@@ -60,6 +60,10 @@ AUTHENTICATION_BACKENDS = (
     'django_dacs.auth.DACSUserBackend',
 )
 
+TEMPLATE_CONTEXT_PROCESSORS = global_settings.TEMPLATE_CONTEXT_PROCESSORS + (
+    "django.core.context_processors.request",
+)
+
 ROOT_URLCONF = 'debsso.urls'
 
 WSGI_APPLICATION = 'debsso.wsgi.application'
