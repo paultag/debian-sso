@@ -30,14 +30,12 @@
 {% block breadcrumbs %}<a href="{% url 'sso_login' %}">Debian single sign-on</a>{% endblock %}
 
 {% block relatedpages %}
-{% comment %}
 {% if user.is_anonymous %}
-<a href="{% url 'login_redirect' %}?url={{request.build_absolute_uri}}">login with Debian web password</a>
+<a href="{% url 'sso_login' %}?url={{request.build_absolute_uri}}">login</a>
 {% else %}
 <a href="{#% url '' %#}">{{user}}</a>
-<a href="https://sso.debian.org/cgi-bin/dacs/dacs_signout?SIGNOUT_HANDLER={{request.build_absolute_uri}}">logout</a>
+<a href="{% url 'sso_logout' %}?url={{request.build_absolute_uri}}">logout</a>
 {% endif %}
-{% endcomment %}
 {% endblock %}
 
 {% block content %}
