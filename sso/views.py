@@ -41,9 +41,11 @@ def acs_error(request):
     """
     from .dacs_codes import error_for_code
     _dump_args(request, "acs_error")
+    next_url = request.GET.get("DACS_ERROR_URL", None)
     return render(request, "sso/login.html", {
         "dacs_error": error_for_code(request.GET.get("DACS_ERROR_CODE", None)),
         "dacs_error_url": request.GET.get("DACS_ERROR_URL"),
+        "next_url": next_url,
     })
 
 def login_error(request):
