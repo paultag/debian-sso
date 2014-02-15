@@ -28,7 +28,7 @@ Logged in as <b>{{dacs_user}}</b>.
 </form>
 
 {% else %}
-  <form name="loginForm" method="POST" action="/cgi-bin/dacs/dacs_authenticate" autocomplete="off">
+  <form name="loginForm" method="POST" action="/cgi-bin/dacs/dacs_authenticate">
     <label for="USERNAME"><b>Username:</b><span class="form_required" title="Needed argument">*</span></label>
     <br />
     <input name="USERNAME" type="text" id="USERNAME" size="30" ><!-- default empty -->
