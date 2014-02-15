@@ -92,7 +92,7 @@ def logout(request):
         next_url = request.COOKIES.get(b"debsso_logout_next_url", None)
 
     if dacs_user is not None:
-        res = redirect("/cgi-bin/dacs/dacs_signout")
+        res = redirect("https://sso.debian.org/cgi-bin/dacs/dacs_signout")
         if next_url is not None:
             res.set_cookie(b"debsso_logout_next_url", next_url, max_age=60)
         return res

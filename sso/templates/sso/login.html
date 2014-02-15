@@ -40,7 +40,7 @@ Logged in as <b>{{dacs_user}}</b>.
 {% else %}
 <div class="login_form">
   <h2>Debian login</h2>
-  <form name="loginForm" method="POST" action="/cgi-bin/dacs/dacs_authenticate">
+  <form name="loginForm" method="POST" action="https://sso.debian.org/cgi-bin/dacs/dacs_authenticate">
     <label for="USERNAME"><b>Username:</b><span class="form_required" title="Needed argument">*</span></label>
     <br />
     <input name="USERNAME" type="text" id="USERNAME" size="30" placeholder="username"><!-- default empty -->
