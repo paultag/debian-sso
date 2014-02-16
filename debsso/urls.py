@@ -28,6 +28,8 @@ urlpatterns = patterns('',
 
     url(r'^sso/', include('sso.urls')),
 
+    url(r'^o/', include('oauth2_provider.urls', namespace='oauth2_provider')),
+
     # url(r'^admin/', include(admin.site.urls)),
     url(r'^license/$', TemplateView.as_view(template_name='license.html'), name="root_license"),
 )
