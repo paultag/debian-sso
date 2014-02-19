@@ -9,10 +9,12 @@ class TestDACS(unittest.TestCase):
     re_dacs_cookie = re.compile(r"\b(?P<name>DACS:[^=]+)=(?P<value>[^;]+);(?: path=(?P<path>[^;]+);)?(?: domain=(?P<domain>[^;]+);)?")
 
     def setUp(self):
-        self.username = "enrico"
+        import configparser
+        self.config = configparser.ConfigParser()
+        self.config.read("test-sso.cfg")
+        self.username = self.config["auth"]["username"]
+        self.passwd = self.config["auth"]["password"]
         self.dacs_user = "DACS:DEBIANORG::DEBIAN:{}".format(self.username)
-        with io.open("wpasswd", "rt") as fd:
-            self.passwd = fd.read().strip().split("=")[1]
         self.s = requests.Session()
 
     def do_sso_login(self):
