@@ -25,7 +25,7 @@ class TestDACS(unittest.TestCase):
             "USERNAME": self.username,
             "PASSWORD": self.passwd,
         })
-        self.assertEquals(r.status_code, 200)
+        self.assertEqual(r.status_code, 200)
         self.assertIn("{}=".format(self.dacs_user), r.headers["Set-Cookie"])
         mo = self.re_dacs_cookie.search(r.headers["Set-Cookie"])
         self.assertIsNotNone(mo)
@@ -33,6 +33,18 @@ class TestDACS(unittest.TestCase):
         # on sso.d.o
         self.assertIsNone(mo.group("domain"))
         return mo.groupdict()
+
+    def test_sso_login(self):
+        r = self.s.get("https://sso.debian.org/cgi-bin/dacs/dacs_current_credentials", allow_redirects=False)
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue("You are not authenticated within federation <tt><b>DEBIANORG</b></tt>" in r.text)
+
+        self.do_sso_login()
+
+        r = self.s.get("https://sso.debian.org/cgi-bin/dacs/dacs_current_credentials", allow_redirects=False)
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue('You are authenticated within federation <span class="fed_name">DEBIANORG</span> as' in r.text)
+        self.assertTrue('<li><b>DEBIAN:{}</b><br>'.format(self.username) in r.text)
 
     def test_visit_sso(self):
         """
@@ -42,9 +54,8 @@ class TestDACS(unittest.TestCase):
         r = self.s.get("https://sso.debian.org/", headers={
             "Cookie": "{name}={value}".format(**info)
         })
-        self.assertEquals(r.status_code, 200)
-        self.assert_("You are currently logged in" in r.text)
-
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue("You are currently logged in" in r.text)
 
     def test_auth_transfer(self):
         """
@@ -58,10 +69,28 @@ class TestDACS(unittest.TestCase):
         }, data={
             "OPERATION": "EXPORT",
             "TARGET_FEDERATION": "CONTRIBUTORS",
-            "DACS_IDENTITY": self.dacs_user,
+            "DACS_IDENTITY": "DEBIANORG::DEBIAN:{}".format(self.username),
+            "TRANSFER_SUCCESS_URL": "http://www.example.org",
+            "TRANSFER_ERROR_URL": "http://www.ifailed.debian.org",
         })
-        self.assertEquals(r.status_code, 302)
-        self.assertEquals(r.headers["Location"], "https://www.example.org")
+        #print(r.headers["content-type"], r.text)
+        self.assertEqual(r.status_code, 302)
+        self.assertEqual(r.headers["Location"], "https://www.example.org")
+
+    def test_anonymous_visit_sso(self):
+        r = self.s.get("https://sso.debian.org/", allow_redirects=False)
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue("You are not currently logged in", r.text)
+
+    def test_anonymous_visit_contributors(self):
+        r = self.s.get("https://contributors.debian.org/", allow_redirects=False)
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue("You are not currently logged in", r.text)
+
+    def test_anonymous_visit_nm(self):
+        r = self.s.get("https://nm.debian.org/", allow_redirects=False)
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue("You are not currently logged in", r.text)
 
 
 if __name__ == '__main__':
