@@ -99,13 +99,28 @@ class SSOTestCase(TestCase):
         response = c.get(reverse("sso_logout"), DACS_USERNAME="foo")
         self.assertEquals(response.status_code, 302)
         self.assertEquals(response["Location"], "https://sso.debian.org/cgi-bin/dacs/dacs_signout")
-        self.assertNotIn("debsso_logout_next_url", c.cookies)
-
-        # Back from logout, redirect to home
+        self.assertEquals(c.cookies["nataraja"].value, '["https://contributors.debian.org/cgi-bin/dacs/dacs_signout", "https://nm.debian.org/cgi-bin/dacs/dacs_signout", "http://testserver/"]')
+        # Follow the redirect dance
+        response = c.get(reverse("sso_logout"))
+        self.assertEquals(response.status_code, 302)
+        self.assertEquals(response["Location"], "https://contributors.debian.org/cgi-bin/dacs/dacs_signout")
+        self.assertEquals(c.cookies["nataraja"].value, '["https://nm.debian.org/cgi-bin/dacs/dacs_signout", "http://testserver/"]')
+        response = c.get(reverse("sso_logout"))
+        self.assertEquals(response.status_code, 302)
+        self.assertEquals(response["Location"], "https://nm.debian.org/cgi-bin/dacs/dacs_signout")
+        self.assertEquals(c.cookies["nataraja"].value, '["http://testserver/"]')
         response = c.get(reverse("sso_logout"))
         self.assertEquals(response.status_code, 302)
         self.assertEquals(response["Location"], "http://testserver/")
-        self.assertNotIn("debsso_logout_next_url", c.cookies)
+        # End, and the cookie is cleaned away
+        self.assertEquals(c.cookies["nataraja"]["expires"], "Thu, 01-Jan-1970 00:00:00 GMT")
+
+        # Visiting again, we just get redirected home
+        c = Client()
+        response = c.get(reverse("sso_logout"))
+        self.assertEquals(response.status_code, 302)
+        self.assertEquals(response["Location"], "http://testserver/")
+        self.assertNotIn("nataraja", c.cookies)
 
     def test_logout_url(self):
         # Plain logout, next_url
@@ -113,11 +128,26 @@ class SSOTestCase(TestCase):
         response = c.get(reverse("sso_logout"), data={"url": "http://www.example.org"}, DACS_USERNAME="foo")
         self.assertEquals(response.status_code, 302)
         self.assertEquals(response["Location"], "https://sso.debian.org/cgi-bin/dacs/dacs_signout")
-        self.assertIn("debsso_logout_next_url", c.cookies)
-
-        # Back from logout, redirect to example.org and clean next_url session
+        self.assertEquals(c.cookies["nataraja"].value, '["https://contributors.debian.org/cgi-bin/dacs/dacs_signout", "https://nm.debian.org/cgi-bin/dacs/dacs_signout", "http://www.example.org"]')
+        # Follow the redirect dance
+        response = c.get(reverse("sso_logout"))
+        self.assertEquals(response.status_code, 302)
+        self.assertEquals(response["Location"], "https://contributors.debian.org/cgi-bin/dacs/dacs_signout")
+        self.assertEquals(c.cookies["nataraja"].value, '["https://nm.debian.org/cgi-bin/dacs/dacs_signout", "http://www.example.org"]')
+        response = c.get(reverse("sso_logout"))
+        self.assertEquals(response.status_code, 302)
+        self.assertEquals(response["Location"], "https://nm.debian.org/cgi-bin/dacs/dacs_signout")
+        self.assertEquals(c.cookies["nataraja"].value, '["http://www.example.org"]')
         response = c.get(reverse("sso_logout"))
         self.assertEquals(response.status_code, 302)
         self.assertEquals(response["Location"], "http://www.example.org")
-        self.assertIn("debsso_logout_next_url", c.cookies)
-        self.assertEquals(c.cookies["debsso_logout_next_url"]["expires"], "Thu, 01-Jan-1970 00:00:00 GMT")
+        # End, and the cookie is cleaned away
+        self.assertEquals(c.cookies["nataraja"]["expires"], "Thu, 01-Jan-1970 00:00:00 GMT")
+
+        # Visiting the logout url when logged out, but with a next url, just
+        # redirects to it
+        c = Client()
+        response = c.get(reverse("sso_logout"), data={"url": "http://www.example.org"})
+        self.assertEquals(response.status_code, 302)
+        self.assertEquals(response["Location"], "http://www.example.org")
+        self.assertNotIn("nataraja", c.cookies)

@@ -20,9 +20,11 @@ from __future__ import print_function
 from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
+from django.conf import settings
 from django.shortcuts import render, redirect
 from django.core.urlresolvers import reverse
 from urllib import urlencode
+import json
 
 def _dump_args(request, tag):
     import datetime, os
@@ -122,25 +124,55 @@ def logout(request):
     """
     _dump_args(request, "logout")
     dacs_user = request.environ.get("DACS_USERNAME", None)
-    next_url = request.GET.get("url", None)
-
-    # Use session as fallback for when next_url is not set
-    if next_url is None:
-        next_url = request.COOKIES.get(b"debsso_logout_next_url", None)
 
     if dacs_user is not None:
-        res = redirect("https://sso.debian.org/cgi-bin/dacs/dacs_signout")
+        next_url = request.GET.get("url", None)
+        # http://en.wikipedia.org/wiki/Nataraja
+        #
+        # Nataraja is a depiction of the god Shiva as the cosmic dancer who
+        # performs his divine dance to destroy a weary universe and make
+        # preparations for the god Brahma to start the process of creation.
+        #
+        # What better name for the list of steps in our dance to destroy all
+        # cookies in all our federation domains?
+        #
+        # I find coding this so... interesting, that I feel the need to add
+        # some epic to it.
+        #
+        # Build a todo list of redirect links we need to visit, with a
+        # non-logout link in the end to break the chain
+        redirect_dance = []
+        for name, baseurl in settings.DEBIAN_FEDERATION.iteritems():
+            redirect_dance.append(baseurl + "/cgi-bin/dacs/dacs_signout")
+        # Sort it to make it easier to test
+        redirect_dance.sort()
         if next_url is not None:
-            res.set_cookie(b"debsso_logout_next_url", next_url, max_age=60)
+            redirect_dance.append(next_url)
+        else:
+            redirect_dance.append(request.build_absolute_uri(reverse("home")))
+
+        res = redirect("https://sso.debian.org/cgi-bin/dacs/dacs_signout")
+        res.set_cookie(b"nataraja", json.dumps(redirect_dance), max_age=60)
         return res
     else:
-        if next_url:
-            res = redirect(next_url)
-            res.delete_cookie(b"debsso_logout_next_url")
+        # If we are dancing the redirect dance, move to the next step
+        try:
+            redirect_dance = json.loads(request.COOKIES.get(b"nataraja", "[]"))
+        except:
+            redirect_dance = []
+
+        if redirect_dance:
+            res = redirect(redirect_dance.pop(0))
+            if redirect_dance:
+                res.set_cookie(b"nataraja", json.dumps(redirect_dance), max_age=60)
+            else:
+                res.delete_cookie(b"nataraja")
             return res
         else:
+            # We finished our dance and the last link did not send us away from
+            # the logout url. Weird. Let's deal gracefully with it and send
+            # them home, or wherever they wanted to be.
+            next_url = request.GET.get("url", None)
+            if next_url:
+                return redirect(next_url)
             return redirect("home")
-            #render(request, "sso/login.html", {})
-
-#    # $c->stash->{message}  = "User logged out.";
-#    # $c->stash->{hide_loginbox} = 1;
