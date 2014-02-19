@@ -1,0 +1,62 @@
+#!/usr/bin/python3.3
+
+import unittest
+import requests
+import io
+import re
+
+class TestDACS(unittest.TestCase):
+    re_dacs_cookie = re.compile(r"\b(?P<name>DACS:[^=]+)=(?P<value>[^;]+);(?: path=(?P<path>[^;]+);)?(?: domain=(?P<domain>[^;]+);)?")
+
+    def setUp(self):
+        self.username = "enrico"
+        self.dacs_user = "DACS:DEBIANORG::DEBIAN:{}".format(self.username)
+        with io.open("wpasswd", "rt") as fd:
+            self.passwd = fd.read().strip().split("=")[1]
+        self.s = requests.Session()
+
+    def do_sso_login(self):
+        """
+        Log into sso.debian.org and return the dacs credentials that we got
+        """
+        r = self.s.get("https://sso.debian.org/cgi-bin/dacs/dacs_authenticate", data={
+            "DACS_JURISDICTION": "DEBIAN",
+            "DACS_BROWSER": "1", # FIXME: what is this?
+            "USERNAME": self.username,
+            "PASSWORD": self.passwd,
+        })
+        self.assertEquals(r.status_code, 200)
+        self.assertIn("{}=".format(self.dacs_user), r.headers["Set-Cookie"])
+        mo = self.re_dacs_cookie.search(r.headers["Set-Cookie"])
+        self.assertIsNotNone(mo)
+        # There should be no cookie domain, because we are not using subdomains
+        # on sso.d.o
+        self.assertIsNone(mo.group("domain"))
+        return mo.groupdict()
+
+    def test_visit_sso(self):
+        """
+        Login, visit a page and ensure we are logged in
+        """
+        info = self.do_sso_login()
+        r = self.s.get("https://sso.debian.org/", headers={
+            "Cookie": "{name}={value}".format(**info)
+        })
+        self.assertEquals(r.status_code, 200)
+        self.assert_("You are currently logged in" in r.text)
+
+
+    def test_auth_transfer(self):
+        """
+        Login, then initiate auth transfer to another domain
+        """
+        info = self.do_sso_login()
+        ## Initiate auth transfer
+        #curl -i --cookie "$COOKIE" \
+        #	-d OPERATION=EXPORT -d TARGET_FEDERATION=CONTRIBUTORS -d DACS_IDENTITY=DEBIAN:enrico \
+        #	https://sso.debian.org/cgi-bin/dacs/dacs_auth_transfer
+
+
+
+if __name__ == '__main__':
+    unittest.main()
