@@ -98,7 +98,7 @@ def login(request):
             return redirect("https://sso.debian.org/cgi-bin/dacs/dacs_auth_transfer?" + urlencode({
                 "OPERATION": "EXPORT",
                 "TARGET_FEDERATION": site,
-                "DACS_IDENTITY": dacs_user,
+                "DACS_IDENTITY": request.environ["DACS_IDENTITY"],
                 "TRANSFER_SUCCESS_URL": next_url,
             }))
         elif next_url:

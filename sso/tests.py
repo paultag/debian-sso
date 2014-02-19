@@ -47,23 +47,23 @@ class SSOTestCase(TestCase):
         # The login form with auth transfer, when already logged in, initiates
         # auth transfer
         c = Client()
-        response = c.get(reverse('sso_login'), data={"site": "CONTRIBUTORS", "url": "http://www.example.org"}, DACS_USERNAME="foo")
+        response = c.get(reverse('sso_login'), data={"site": "CONTRIBUTORS", "url": "http://www.example.org"}, DACS_USERNAME="foo", DACS_IDENTITY="f-o-o")
         self.assertEquals(response.status_code, 302)
-        self.assertEquals(response["Location"], "https://sso.debian.org/cgi-bin/dacs/dacs_auth_transfer?DACS_IDENTITY=foo&OPERATION=EXPORT&TARGET_FEDERATION=CONTRIBUTORS&TRANSFER_SUCCESS_URL=http%3A%2F%2Fwww.example.org")
+        self.assertEquals(response["Location"], "https://sso.debian.org/cgi-bin/dacs/dacs_auth_transfer?DACS_IDENTITY=f-o-o&OPERATION=EXPORT&TARGET_FEDERATION=CONTRIBUTORS&TRANSFER_SUCCESS_URL=http%3A%2F%2Fwww.example.org")
 
         # If there is no 'url' argument, it picks a sensible
         # TRANSFER_SUCCESS_URL
         c = Client()
-        response = c.get(reverse('sso_login'), data={"site": "CONTRIBUTORS"}, DACS_USERNAME="foo")
+        response = c.get(reverse('sso_login'), data={"site": "CONTRIBUTORS"}, DACS_USERNAME="foo", DACS_IDENTITY="f-o-o")
         self.assertEquals(response.status_code, 302)
-        self.assertEquals(response["Location"], "https://sso.debian.org/cgi-bin/dacs/dacs_auth_transfer?DACS_IDENTITY=foo&OPERATION=EXPORT&TARGET_FEDERATION=CONTRIBUTORS&TRANSFER_SUCCESS_URL=http%3A%2F%2Ftestserver%2F")
+        self.assertEquals(response["Location"], "https://sso.debian.org/cgi-bin/dacs/dacs_auth_transfer?DACS_IDENTITY=f-o-o&OPERATION=EXPORT&TARGET_FEDERATION=CONTRIBUTORS&TRANSFER_SUCCESS_URL=http%3A%2F%2Ftestserver%2F")
 
         # If there is a 'url' argument pointing to ourselves, we redirect to
         # home instead to prevent a redirect loop
         c = Client()
-        response = c.get(reverse('sso_login'), data={"site": "CONTRIBUTORS", "url": "http://testserver/sso/login"}, DACS_USERNAME="foo")
+        response = c.get(reverse('sso_login'), data={"site": "CONTRIBUTORS", "url": "http://testserver/sso/login"}, DACS_USERNAME="foo", DACS_IDENTITY="f-o-o")
         self.assertEquals(response.status_code, 302)
-        self.assertEquals(response["Location"], "https://sso.debian.org/cgi-bin/dacs/dacs_auth_transfer?DACS_IDENTITY=foo&OPERATION=EXPORT&TARGET_FEDERATION=CONTRIBUTORS&TRANSFER_SUCCESS_URL=http%3A%2F%2Ftestserver%2F")
+        self.assertEquals(response["Location"], "https://sso.debian.org/cgi-bin/dacs/dacs_auth_transfer?DACS_IDENTITY=f-o-o&OPERATION=EXPORT&TARGET_FEDERATION=CONTRIBUTORS&TRANSFER_SUCCESS_URL=http%3A%2F%2Ftestserver%2F")
 
     def test_acs_error(self):
         # When not authenticated, we get the login form
