@@ -17,6 +17,15 @@ class TestDACS(unittest.TestCase):
         self.dacs_user = "DACS:DEBIANORG::DEBIAN:{}".format(self.username)
         self.s = requests.Session()
 
+    def want_dacs_cookie_info(self, r):
+        self.assertIn("{}=".format(self.dacs_user), r.headers["Set-Cookie"])
+        mo = self.re_dacs_cookie.search(r.headers["Set-Cookie"])
+        self.assertIsNotNone(mo)
+        # There should be no cookie domain, because we are not using subdomains
+        # on sso.d.o
+        self.assertIsNone(mo.group("domain"))
+        return mo.groupdict()
+
     def do_sso_login(self):
         """
         Log into sso.debian.org and return the dacs credentials that we got
@@ -28,13 +37,9 @@ class TestDACS(unittest.TestCase):
             "PASSWORD": self.passwd,
         })
         self.assertEqual(r.status_code, 200)
-        self.assertIn("{}=".format(self.dacs_user), r.headers["Set-Cookie"])
-        mo = self.re_dacs_cookie.search(r.headers["Set-Cookie"])
-        self.assertIsNotNone(mo)
-        # There should be no cookie domain, because we are not using subdomains
-        # on sso.d.o
-        self.assertIsNone(mo.group("domain"))
-        return mo.groupdict()
+        res = self.want_dacs_cookie_info(r)
+        self.assertEqual("DACS:DEBIANORG::DEBIAN:{}".format(self.username), res["name"])
+        return res
 
     def test_sso_login(self):
         r = self.s.get("https://sso.debian.org/cgi-bin/dacs/dacs_current_credentials", allow_redirects=False)
@@ -59,7 +64,7 @@ class TestDACS(unittest.TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertTrue("You are currently logged in" in r.text)
 
-    def test_auth_transfer(self):
+    def test_auth_transfer_dacs(self):
         """
         Login, then initiate auth transfer to another domain
         """
@@ -72,12 +77,18 @@ class TestDACS(unittest.TestCase):
             "OPERATION": "EXPORT",
             "TARGET_FEDERATION": "CONTRIBUTORS",
             "DACS_IDENTITY": "DEBIANORG::DEBIAN:{}".format(self.username),
-            "TRANSFER_SUCCESS_URL": "http://www.example.org",
-            "TRANSFER_ERROR_URL": "http://www.ifailed.debian.org",
+            "TRANSFER_SUCCESS_URL": "https://www.example.org",
+            # "TRANSFER_ERROR_URL": "http://www.ifailed.debian.org",
         })
-        #print(r.headers["content-type"], r.text)
+        self.assertEqual(r.status_code, 302)
+        self.assertTrue(r.headers["Location"].startswith("https://contributors.debian.org:443/cgi-bin/dacs/dacs_auth_transfer?OPERATION=IMPORT&"))
+
+        r = self.s.get(r.headers["Location"], allow_redirects=False)
         self.assertEqual(r.status_code, 302)
         self.assertEqual(r.headers["Location"], "https://www.example.org")
+        info = self.want_dacs_cookie_info(r)
+        # DEBIANORG or CONTRIBUTORS?
+        self.assertEqual("DACS:DEBIANORG::DEBIAN:{}".format(self.username), info["name"])
 
     def test_anonymous_visit_sso(self):
         r = self.s.get("https://sso.debian.org/", allow_redirects=False)
