@@ -64,6 +64,10 @@ class TestDACS(unittest.TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertTrue("You are currently logged in" in r.text)
 
+        r = self.s.get("https://sso.debian.org/cgi-bin/dacs/dacs_signout", allow_redirects=False)
+        self.assertEqual(r.status_code, 302)
+        self.assertEqual(r.headers["Location"], "https://sso.debian.org/sso/logout?DACS_VERSION=1.4&DACS_FEDERATION=DEBIANORG&DACS_JURISDICTION=DEBIAN")
+
     def test_auth_transfer_dacs(self):
         """
         Login, then initiate auth transfer to another domain
@@ -108,13 +112,13 @@ class TestDACS(unittest.TestCase):
         mo = re.search(r'<input type="hidden" name="DACS_AUTH_SUCCESS_HANDLER" value="(?P<url>[^"]+)">', r.text)
         self.assertIsNotNone(mo)
         success_handler = mo.group("url")
-        self.assertEquals(success_handler, "https://contributors.debian.org/")
+        self.assertEqual(success_handler, "https://contributors.debian.org/")
         mo = re.search(r'<input type="hidden" name="DACS_ERROR_URL" value="(?P<url>[^"]+)">', r.text)
         self.assertIsNotNone(mo)
         error_url = mo.group("url")
         # FIXME: this does not look right, as I'd expect sso.d.o to handle
         # dacs_authenticate errors. I have no time to look it up now, though.
-        self.assertEquals(error_url, "https://contributors.debian.org/")
+        self.assertEqual(error_url, "https://contributors.debian.org/")
 
         # After we log in
         r = self.s.post("https://sso.debian.org/cgi-bin/dacs/dacs_authenticate", allow_redirects=False, params={
@@ -164,6 +168,14 @@ class TestDACS(unittest.TestCase):
         self.assertEqual(r.status_code, 200)
         self.assertTrue("You are not currently logged in", r.text)
 
+    def test_logout_links(self):
+        for site in "https://sso.debian.org", "https://contributors.debian.org", "https://nm.debian.org":
+            r = self.s.get("{}/cgi-bin/dacs/dacs_signout".format(site), allow_redirects=False)
+            if r.status_code == 302:
+                if r.headers["Location"].startswith("https://sso.debian.org/sso/acs_error"):
+                    self.fail("{} denies access to dacs_signout".format(site))
+            self.assertEqual(r.status_code, 200)
+            self.assertTrue("You are not authenticated within federation" in r.text)
 
 if __name__ == '__main__':
     unittest.main()

@@ -1,0 +1,13 @@
+#!/usr/bin/python3
+
+import os
+import re
+
+print("Status: 302")
+print("Location: https://sso.debian.org/sso/logout")
+re_find_cookies = re.compile(r"(?P<key>[^=]+)=(?P<value>[^;]+)\s*")
+for mo in re_find_cookies.finditer(os.environ.get("HTTP_COOKIE", "")):
+    key = mo.group("key")
+    if not key.startswith("DACS"): continue
+    print("Set-Cookie: {}=; Expires=Thu, 01-Jan-1970 00:00:01 GMT;".format(key))
+print()
