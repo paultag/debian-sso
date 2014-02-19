@@ -13,7 +13,7 @@ class TestDACS(unittest.TestCase):
         self.config = configparser.ConfigParser()
         self.config.read("test-sso.cfg")
         self.username = self.config["auth"]["username"]
-        self.passwd = self.config["auth"]["password"]
+        self.password = self.config["auth"]["password"]
         self.dacs_user = "DACS:DEBIANORG::DEBIAN:{}".format(self.username)
         self.s = requests.Session()
 
@@ -30,11 +30,11 @@ class TestDACS(unittest.TestCase):
         """
         Log into sso.debian.org and return the dacs credentials that we got
         """
-        r = self.s.get("https://sso.debian.org/cgi-bin/dacs/dacs_authenticate", data={
+        r = self.s.get("https://sso.debian.org/cgi-bin/dacs/dacs_authenticate", params={
             "DACS_JURISDICTION": "DEBIAN",
             "DACS_BROWSER": "1", # FIXME: what is this?
             "USERNAME": self.username,
-            "PASSWORD": self.passwd,
+            "PASSWORD": self.password,
         })
         self.assertEqual(r.status_code, 200)
         res = self.want_dacs_cookie_info(r)
@@ -73,7 +73,7 @@ class TestDACS(unittest.TestCase):
         ## Initiate auth transfer
         r = self.s.get("https://sso.debian.org/cgi-bin/dacs/dacs_auth_transfer", allow_redirects=False, headers={
             "Cookie": "{name}={value}".format(**info)
-        }, data={
+        }, params={
             "OPERATION": "EXPORT",
             "TARGET_FEDERATION": "CONTRIBUTORS",
             "DACS_IDENTITY": "DEBIANORG::DEBIAN:{}".format(self.username),
@@ -89,6 +89,65 @@ class TestDACS(unittest.TestCase):
         info = self.want_dacs_cookie_info(r)
         # DEBIANORG or CONTRIBUTORS?
         self.assertEqual("DACS:DEBIANORG::DEBIAN:{}".format(self.username), info["name"])
+
+    def test_auth_transfer_ui_not_logged(self):
+        """
+        Visit the login page asking for auth transfer, but not being logged in:
+        we get the login page
+        """
+        # If we visit the login url with a site= argument and we are not logged
+        # in
+        r = self.s.get("https://sso.debian.org/sso/login", allow_redirects=False, params={
+            "site": "contributors.debian.org",
+            "url": "https://contributors.debian.org/",
+        })
+
+        # Then we get the form
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue('<form name="loginForm"' in r.text)
+        mo = re.search(r'<input type="hidden" name="DACS_AUTH_SUCCESS_HANDLER" value="(?P<url>[^"]+)">', r.text)
+        self.assertIsNotNone(mo)
+        success_handler = mo.group("url")
+        self.assertEquals(success_handler, "https://contributors.debian.org/")
+        mo = re.search(r'<input type="hidden" name="DACS_ERROR_URL" value="(?P<url>[^"]+)">', r.text)
+        self.assertIsNotNone(mo)
+        error_url = mo.group("url")
+        # FIXME: this does not look right, as I'd expect sso.d.o to handle
+        # dacs_authenticate errors. I have no time to look it up now, though.
+        self.assertEquals(error_url, "https://contributors.debian.org/")
+
+        # After we log in
+        r = self.s.post("https://sso.debian.org/cgi-bin/dacs/dacs_authenticate", allow_redirects=False, params={
+            "USERNAME": self.username,
+            "PASSWORD": self.password,
+            "DACS_BROWSER": 1,
+            "ENABLE_AUTH_HANDLERS": 1,
+            "DACS_JURISDICTION": "DEBIAN",
+            "DACS_AUTH_SUCCESS_HANDLER": success_handler,
+            "DACS_ERROR_URL": error_url,
+        })
+        self.assertEqual(r.status_code, 302)
+        self.assertEqual(r.headers["Location"], "https://www.example.org")
+        self.fail("FIXME: not finished, and it doesn't really end this way")
+
+    def test_auth_transfer_ui(self):
+        """
+        Login, then initiate auth transfer to another domain
+        """
+        # If we're authenticated with DACS
+        info = self.do_sso_login()
+
+        # And we visit the login url with a site= argument
+        r = self.s.get("https://sso.debian.org/sso/login", allow_redirects=False, headers={
+            "Cookie": "{name}={value}".format(**info)
+        }, params={
+            "site": "contributors.debian.org",
+            "url": "http://contributors.debian.org/",
+        })
+        self.assertEqual(r.status_code, 302)
+        self.assertTrue(r.headers["Location"].startswith("https://contributors.debian.org:443/cgi-bin/dacs/dacs_auth_transfer?OPERATION=EXPORT&"))
+
+        self.fail("FIXME: not finished")
 
     def test_anonymous_visit_sso(self):
         r = self.s.get("https://sso.debian.org/", allow_redirects=False)

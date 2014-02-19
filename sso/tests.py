@@ -24,6 +24,47 @@ class SSOTestCase(TestCase):
         self.assertEquals(response.status_code, 302)
         self.assertEquals(response["Location"], "http://www.example.org")
 
+    def test_login_transfer(self):
+        # The login form with auth transfer has a next url that points to us
+        c = Client()
+        response = c.get(reverse('sso_login'), data={"site": "CONTRIBUTORS"})
+        self.assertEquals(response.status_code, 200)
+        self.assertIsNone(response.context["dacs_user"])
+        self.assertEquals(response.context["next_url"], "/sso/login?site=CONTRIBUTORS")
+        self.assert_('<form name="loginForm"' in response.content)
+        self.assert_('<h1>Access denied.</h1>' not in response.content)
+
+        # The login form with auth transfer has a next url that points to us,
+        # then to the original next url
+        c = Client()
+        response = c.get(reverse('sso_login'), data={"site": "CONTRIBUTORS", "url": "http://www.example.org"})
+        self.assertEquals(response.status_code, 200)
+        self.assertIsNone(response.context["dacs_user"])
+        self.assertEquals(response.context["next_url"], "/sso/login?url=http%3A%2F%2Fwww.example.org&site=CONTRIBUTORS")
+        self.assert_('<form name="loginForm"' in response.content)
+        self.assert_('<h1>Access denied.</h1>' not in response.content)
+
+        # The login form with auth transfer, when already logged in, initiates
+        # auth transfer
+        c = Client()
+        response = c.get(reverse('sso_login'), data={"site": "CONTRIBUTORS", "url": "http://www.example.org"}, DACS_USERNAME="foo")
+        self.assertEquals(response.status_code, 302)
+        self.assertEquals(response["Location"], "https://sso.debian.org/cgi-bin/dacs/dacs_auth_transfer?DACS_IDENTITY=foo&OPERATION=EXPORT&TARGET_FEDERATION=CONTRIBUTORS&TRANSFER_SUCCESS_URL=http%3A%2F%2Fwww.example.org")
+
+        # If there is no 'url' argument, it picks a sensible
+        # TRANSFER_SUCCESS_URL
+        c = Client()
+        response = c.get(reverse('sso_login'), data={"site": "CONTRIBUTORS"}, DACS_USERNAME="foo")
+        self.assertEquals(response.status_code, 302)
+        self.assertEquals(response["Location"], "https://sso.debian.org/cgi-bin/dacs/dacs_auth_transfer?DACS_IDENTITY=foo&OPERATION=EXPORT&TARGET_FEDERATION=CONTRIBUTORS&TRANSFER_SUCCESS_URL=http%3A%2F%2Ftestserver%2F")
+
+        # If there is a 'url' argument pointing to ourselves, we redirect to
+        # home instead to prevent a redirect loop
+        c = Client()
+        response = c.get(reverse('sso_login'), data={"site": "CONTRIBUTORS", "url": "http://testserver/sso/login"}, DACS_USERNAME="foo")
+        self.assertEquals(response.status_code, 302)
+        self.assertEquals(response["Location"], "https://sso.debian.org/cgi-bin/dacs/dacs_auth_transfer?DACS_IDENTITY=foo&OPERATION=EXPORT&TARGET_FEDERATION=CONTRIBUTORS&TRANSFER_SUCCESS_URL=http%3A%2F%2Ftestserver%2F")
+
     def test_acs_error(self):
         # When not authenticated, we get the login form
         c = Client()
@@ -57,7 +98,7 @@ class SSOTestCase(TestCase):
         c = Client()
         response = c.get(reverse("sso_logout"), DACS_USERNAME="foo")
         self.assertEquals(response.status_code, 302)
-        self.assertEquals(response["Location"], "http://testserver/cgi-bin/dacs/dacs_signout")
+        self.assertEquals(response["Location"], "https://sso.debian.org/cgi-bin/dacs/dacs_signout")
         self.assertNotIn("debsso_logout_next_url", c.cookies)
 
         # Back from logout, redirect to home
@@ -71,7 +112,7 @@ class SSOTestCase(TestCase):
         c = Client()
         response = c.get(reverse("sso_logout"), data={"url": "http://www.example.org"}, DACS_USERNAME="foo")
         self.assertEquals(response.status_code, 302)
-        self.assertEquals(response["Location"], "http://testserver/cgi-bin/dacs/dacs_signout")
+        self.assertEquals(response["Location"], "https://sso.debian.org/cgi-bin/dacs/dacs_signout")
         self.assertIn("debsso_logout_next_url", c.cookies)
 
         # Back from logout, redirect to example.org and clean next_url session

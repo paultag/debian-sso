@@ -21,6 +21,8 @@ from __future__ import absolute_import
 from __future__ import division
 from __future__ import unicode_literals
 from django.shortcuts import render, redirect
+from django.core.urlresolvers import reverse
+from urllib import urlencode
 
 def _dump_args(request, tag):
     import datetime, os
@@ -70,13 +72,48 @@ def login(request):
     _dump_args(request, "login")
     dacs_user = request.environ.get("DACS_USERNAME", None)
     next_url = request.GET.get("url", None)
+    site = request.GET.get("site", None)
 
-    if dacs_user is not None and next_url:
-        return redirect(next_url)
+    if dacs_user is not None:
+        # Already authenticated
+        if site:
+            if not next_url:
+                # We need a url to redirect to, so if we weren't provided one,
+                # we pick a reasonable one.
+                next_url = reverse("home")
+
+            # Build the absolute url
+            next_url = request.build_absolute_uri(next_url)
+
+            # Try to protect against redirect loops.
+            # Since we are not able to tell if we get here from
+            # dacs_auth_transfer or from someone asking for a login+auth
+            # transfer, we risk an infinite redirect loop if we are called with
+            # a 'url' argument putting to ourselves with all our GET arguments.
+            my_url = request.build_absolute_uri(reverse("sso_login"))
+            if next_url.startswith(my_url):
+                next_url = request.build_absolute_uri(reverse("home"))
+
+            # Initiate auth transfer
+            return redirect("https://sso.debian.org/cgi-bin/dacs/dacs_auth_transfer?" + urlencode({
+                "OPERATION": "EXPORT",
+                "TARGET_FEDERATION": site,
+                "DACS_IDENTITY": dacs_user,
+                "TRANSFER_SUCCESS_URL": next_url,
+            }))
+        elif next_url:
+            return redirect(next_url)
+    elif site:
+        # Not authenticated, and auth transfer is needed after logging in
+        query = { "site": site }
+        if next_url:
+            query["url"] = next_url
+        next_url = reverse("sso_login") + "?" + urlencode(query)
 
     return render(request, "sso/login.html", {
         "dacs_user": dacs_user,
         "next_url": next_url,
+        "site": site,
     })
 
 def logout(request):
