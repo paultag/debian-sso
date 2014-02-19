@@ -51,11 +51,17 @@ class TestDACS(unittest.TestCase):
         Login, then initiate auth transfer to another domain
         """
         info = self.do_sso_login()
-        ## Initiate auth transfer
-        #curl -i --cookie "$COOKIE" \
-        #	-d OPERATION=EXPORT -d TARGET_FEDERATION=CONTRIBUTORS -d DACS_IDENTITY=DEBIAN:enrico \
-        #	https://sso.debian.org/cgi-bin/dacs/dacs_auth_transfer
 
+        ## Initiate auth transfer
+        r = self.s.get("https://sso.debian.org/cgi-bin/dacs/dacs_auth_transfer", allow_redirects=False, headers={
+            "Cookie": "{name}={value}".format(**info)
+        }, data={
+            "OPERATION": "EXPORT",
+            "TARGET_FEDERATION": "CONTRIBUTORS",
+            "DACS_IDENTITY": self.dacs_user,
+        })
+        self.assertEquals(r.status_code, 302)
+        self.assertEquals(r.headers["Location"], "https://www.example.org")
 
 
 if __name__ == '__main__':
