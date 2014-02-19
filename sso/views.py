@@ -143,7 +143,7 @@ def logout(request):
         # non-logout link in the end to break the chain
         redirect_dance = []
         for name, baseurl in settings.DEBIAN_FEDERATION.iteritems():
-            redirect_dance.append(baseurl + "/cgi-bin/dacs/dacs_signout")
+            redirect_dance.append(baseurl + "/logout")
         # Sort it to make it easier to test
         redirect_dance.sort()
         if next_url is not None:
