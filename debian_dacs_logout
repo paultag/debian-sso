@@ -2,9 +2,17 @@
 
 import os
 import re
+import urllib.parse
+
+redirect_to = "https://sso.debian.org/sso/logout"
+qs = os.environ.get("QUERY_STRING", None)
+if qs is not None:
+    qs = urllib.parse.parse_qs(qs)
+    if "url" in qs:
+        redirect_to = qs["url"][0]
 
 print("Status: 302")
-print("Location: https://sso.debian.org/sso/logout")
+print("Location: {}".format(redirect_to))
 re_find_cookies = re.compile(r"(?P<key>[^=]+)=(?P<value>[^;]+)\s*")
 for mo in re_find_cookies.finditer(os.environ.get("HTTP_COOKIE", "")):
     key = mo.group("key")
