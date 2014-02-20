@@ -27,17 +27,18 @@ from urllib import urlencode
 import json
 
 def _dump_args(request, tag):
-    import datetime, os
-    now = datetime.datetime.utcnow()
-    with open("/tmp/sso-log-" + tag, "at") as fd:
-        os.fchmod(fd.fileno(), 0640)
-        print("--- {}".format(now.strftime("%Y-%m-%d %H:%M:%S")), file=fd)
-        for k, v in request.GET.iteritems():
-            print("GET {} -> {}".format(k, v), file=fd)
-        for k, v in request.environ.iteritems():
-            print("ENV {} -> {}".format(k, v), file=fd)
-        for k, v in request.COOKIES.iteritems():
-            print("COOKIE {} -> {}".format(k, v), file=fd)
+    pass
+    # import datetime, os
+    # now = datetime.datetime.utcnow()
+    # with open("/tmp/sso-log-" + tag, "at") as fd:
+    #     os.fchmod(fd.fileno(), 0640)
+    #     print("--- {}".format(now.strftime("%Y-%m-%d %H:%M:%S")), file=fd)
+    #     for k, v in request.GET.iteritems():
+    #         print("GET {} -> {}".format(k, v), file=fd)
+    #     for k, v in request.environ.iteritems():
+    #         print("ENV {} -> {}".format(k, v), file=fd)
+    #     for k, v in request.COOKIES.iteritems():
+    #         print("COOKIE {} -> {}".format(k, v), file=fd)
 
 def acs_error(request):
     """
