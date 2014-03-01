@@ -3,7 +3,7 @@
 import unittest
 import requests
 import re
-from urllib import urlencode
+from urllib.parse import quote_plus, urlparse
 
 # Copied from debsso/settings.py
 DEBIAN_FEDERATION = {
@@ -42,7 +42,7 @@ class TestMixin():
         Make sure that response r contains a redirect, and return its Location
         """
         if r.status_code != 302:
-            if r.text: print(r.text)
+            if r.text: print(r.text[:1000])
             self.fail("Response was {} instead of a 302 redirect".format(r.status_code))
         return r.headers["Location"]
 
@@ -113,39 +113,49 @@ class TestMixin():
         return info
 
 class TestDACSSite(TestMixin):
+    def setUp(self):
+        super().setUp()
+        if hasattr(self, "FEDERATION"):
+            self.baseurl = DEBIAN_FEDERATION[self.FEDERATION]["baseurl"]
+        else:
+            self.baseurl = "https://sso.debian.org"
+
     def test_logout_when_logged_in(self):
         self.do_sso_login()
 
         if hasattr(self, "FEDERATION"):
             self.do_auth_transfer(self.FEDERATION)
             federation = self.FEDERATION
-            baseurl = DEBIAN_FEDERATION[self.FEDERATION]["baseurl"]
         else:
             federation = "DEBIANORG"
-            baseurl = "https://sso.debian.org"
 
-        r = self.s.get("{}/cgi-bin/dacs/dacs_signout".format(baseurl), allow_redirects=False)
+        r = self.s.get("{}/cgi-bin/dacs/dacs_signout".format(self.baseurl), allow_redirects=False)
         if r.status_code == 302:
             if r.headers["Location"].startswith("https://sso.debian.org/sso/acs_error"):
-                self.fail("{} denies access to dacs_signout".format(self.SITE))
+                self.fail("{} denies access to dacs_signout".format(self.baseurl))
         if r.status_code == 404:
-            self.fail("{} does not have dacs_signout".format(baseurl))
+            self.fail("{} does not have dacs_signout".format(self.baseurl))
         self.assertEqual(self.want_redirect_location(r),
                          "https://sso.debian.org/sso/logout?DACS_VERSION=1.4&DACS_FEDERATION={}&DACS_JURISDICTION=DEBIAN".format(federation))
                          #"https://sso.debian.org/sso/logout?DACS_VERSION=1.4&DACS_FEDERATION=DEBIANORG&DACS_JURISDICTION=DEBIAN")
 
     def test_logout_when_logged_out(self):
-        r = self.s.get("https://{}/cgi-bin/dacs/dacs_signout".format(self.SITE), allow_redirects=False)
+        r = self.s.get("{}/cgi-bin/dacs/dacs_signout".format(self.baseurl), allow_redirects=False)
         if r.status_code == 302:
             if r.headers["Location"].startswith("https://sso.debian.org/sso/acs_error"):
-                self.fail("{} denies access to dacs_signout".format(self.SITE))
+                self.fail("{} denies access to dacs_signout".format(self.baseurl))
         if r.status_code == 404:
-            self.fail("{} does not have dacs_signout".format(self.SITE))
+            self.fail("{} does not have dacs_signout".format(self.baseurl))
         self.assertEqual(r.status_code, 200)
         self.assertTrue("You are not authenticated within federation" in r.text)
 
 
 class TestFederatedServiceMixin(TestDACSSite):
+    def setUp(self):
+        super().setUp()
+        self.fed_info = DEBIAN_FEDERATION[self.FEDERATION]
+        self.hostname = urlparse(self.baseurl).hostname
+
     def test_auth_transfer_when_logged_in(self):
         """
         Login, then initiate auth transfer to another domain
@@ -164,7 +174,7 @@ class TestFederatedServiceMixin(TestDACSSite):
         })
         if r.status_code == 200: print(r.text)
         self.assertTrue(self.want_redirect_location(r).startswith(
-            "https://{}:443/cgi-bin/dacs/dacs_auth_transfer?OPERATION=IMPORT&".format(self.SITE)))
+            "{baseurl}:443/cgi-bin/dacs/dacs_auth_transfer?OPERATION=IMPORT&".format(**self.fed_info)))
 
         r = self.s.get(r.headers["Location"], allow_redirects=False)
         self.assertEqual(self.want_redirect_location(r), "https://www.example.org")
@@ -179,15 +189,14 @@ class TestFederatedServiceMixin(TestDACSSite):
         """
         # If we visit the login url with a site= argument and we are not logged
         # in
-        fed_info = DEBIAN_FEDERATION.get(self.FEDERATION, None)
         r = self.s.get("https://sso.debian.org/sso/login", allow_redirects=False, params={
             "site": self.FEDERATION,
-            "url": "{baseurl}/".format(**fed_info),
+            "url": "{baseurl}/".format(**self.fed_info),
         })
 
         next_url = "/sso/login?url={baseurl}%2F&amp;site={fed}".format(
             fed=self.FEDERATION,
-            site=urlencode(fed_info["baseurl"]),
+            baseurl=quote_plus(self.fed_info["baseurl"]),
         )
 
         # Then we get the form
@@ -202,10 +211,30 @@ class TestFederatedServiceMixin(TestDACSSite):
         error_url = mo.group("url")
         self.assertEqual(error_url, next_url)
 
+    def test_login_required_when_logged_out(self):
+        r = self.s.get("https://sso.debian.org/sso/acs_error?DACS_ERROR_CODE=902"
+                   "&DACS_VERSION=1.4&DACS_FEDERATION={fed}&DACS_JURISDICTION=DEBIAN&DACS_HOSTNAME={hostname}"
+                   "&DACS_USER_AGENT=Foo&DACS_REQUEST_METHOD=GET"
+                   "&DACS_ERROR_URL=https%3A%2F%2Fwww.example.org%2F".format(
+                       fed=self.FEDERATION,
+                       hostname=self.hostname))
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue('<form name="loginForm"' in r.text)
+
+    def test_login_required_when_logged_in(self):
+        self.do_sso_login()
+
+        r = self.s.get("https://sso.debian.org/sso/acs_error?DACS_ERROR_CODE=902"
+                   "&DACS_VERSION=1.4&DACS_FEDERATION={fed}&DACS_JURISDICTION=DEBIAN&DACS_HOSTNAME={hostname}"
+                   "&DACS_USER_AGENT=Foo&DACS_REQUEST_METHOD=GET"
+                   "&DACS_ERROR_URL=https%3A%2F%2Fwww.example.org%2F".format(
+                       fed=self.FEDERATION,
+                       hostname=self.hostname))
+        self.assertTrue(self.want_redirect_location(r).startswith(
+            "https://{}:443/cgi-bin/dacs/dacs_auth_transfer?OPERATION=IMPORT&".format(self.hostname)))
+
 
 class TestSSO(TestDACSSite, unittest.TestCase):
-    SITE = "sso.debian.org"
-
     def test_sso_login(self):
         r = self.s.get("https://sso.debian.org/cgi-bin/dacs/dacs_current_credentials", allow_redirects=False)
         self.assertEqual(r.status_code, 200)
@@ -241,7 +270,6 @@ class TestSSO(TestDACSSite, unittest.TestCase):
 
 class TestNM(TestFederatedServiceMixin, unittest.TestCase):
     FEDERATION = "NM"
-    SITE = "nm.debian.org"
 
     def test_anonymous_visit_nm(self):
         r = self.s.get("https://nm.debian.org/", allow_redirects=False)
@@ -251,7 +279,6 @@ class TestNM(TestFederatedServiceMixin, unittest.TestCase):
 
 class TestCONTRIBUTORS(TestFederatedServiceMixin, unittest.TestCase):
     FEDERATION = "CONTRIBUTORS"
-    SITE = "contributors.debian.org"
 
     def test_anonymous_visit_contributors(self):
         r = self.s.get("https://contributors.debian.org/", allow_redirects=False)
@@ -261,7 +288,6 @@ class TestCONTRIBUTORS(TestFederatedServiceMixin, unittest.TestCase):
 
 class TestNAGIOS(TestFederatedServiceMixin, unittest.TestCase):
     FEDERATION = "NAGIOS"
-    SITE = "nagios.debian.org"
 
 if __name__ == '__main__':
     unittest.main()
