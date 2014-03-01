@@ -100,6 +100,7 @@ DEBIAN_FEDERATION = {
     },
     "NAGIOS": {
         "baseurl": "https://nagios.debian.org",
+        "skip_logout_dance": True,
     },
 }
 

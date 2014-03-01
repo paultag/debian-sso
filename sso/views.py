@@ -144,6 +144,10 @@ def logout(request):
         # non-logout link in the end to break the chain
         redirect_dance = []
         for name, info in settings.DEBIAN_FEDERATION.iteritems():
+            # Some sites do not have a dacs_signout wrapper and would break the
+            # logout dance: skip them. FIXME: logging out from them is
+            # impossible until we implement javascript-based logout
+            if info.get("skip_logout_dance", False): continue
             redirect_dance.append(info["baseurl"] + "/logout")
         # Sort it to make it easier to test
         redirect_dance.sort()
