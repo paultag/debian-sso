@@ -143,8 +143,8 @@ def logout(request):
         # Build a todo list of redirect links we need to visit, with a
         # non-logout link in the end to break the chain
         redirect_dance = []
-        for name, baseurl in settings.DEBIAN_FEDERATION.iteritems():
-            redirect_dance.append(baseurl + "/logout")
+        for name, info in settings.DEBIAN_FEDERATION.iteritems():
+            redirect_dance.append(info["baseurl"] + "/logout")
         # Sort it to make it easier to test
         redirect_dance.sort()
         if next_url is not None:
