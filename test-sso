@@ -2,8 +2,8 @@
 
 import unittest
 import requests
-import io
 import re
+from urllib import urlencode
 
 # Copied from debsso/settings.py
 DEBIAN_FEDERATION = {
@@ -172,17 +172,23 @@ class TestFederatedServiceMixin(TestDACSSite):
         # DEBIANORG or {self.FEDERATION}?
         self.assertEqual("DACS:DEBIANORG::DEBIAN:{}".format(self.username), info["name"])
 
-    def test_auth_transfer_when_not_logged(self):
+    def test_auth_transfer_when_logged_out(self):
         """
         Visit the login page asking for auth transfer, but not being logged in:
         we get the login page
         """
         # If we visit the login url with a site= argument and we are not logged
         # in
+        fed_info = DEBIAN_FEDERATION.get(self.FEDERATION, None)
         r = self.s.get("https://sso.debian.org/sso/login", allow_redirects=False, params={
-            "site": self.SITE,
-            "url": "https://{}/".format(self.SITE),
+            "site": self.FEDERATION,
+            "url": "{baseurl}/".format(**fed_info),
         })
+
+        next_url = "/sso/login?url={baseurl}%2F&amp;site={fed}".format(
+            fed=self.FEDERATION,
+            site=urlencode(fed_info["baseurl"]),
+        )
 
         # Then we get the form
         self.assertEqual(r.status_code, 200)
@@ -190,26 +196,11 @@ class TestFederatedServiceMixin(TestDACSSite):
         mo = re.search(r'<input type="hidden" name="DACS_AUTH_SUCCESS_HANDLER" value="(?P<url>[^"]+)">', r.text)
         self.assertIsNotNone(mo)
         success_handler = mo.group("url")
-        self.assertEqual(success_handler, "/sso/login?url=https%3A%2F%2F{site}%2F&amp;site={site}".format(site=self.SITE))
+        self.assertEqual(success_handler, next_url)
         mo = re.search(r'<input type="hidden" name="DACS_ERROR_URL" value="(?P<url>[^"]+)">', r.text)
         self.assertIsNotNone(mo)
         error_url = mo.group("url")
-        # FIXME: this does not look right, as I'd expect sso.d.o to handle
-        # dacs_authenticate errors. I have no time to look it up now, though.
-        self.assertEqual(error_url, "/sso/login?url=https%3A%2F%2F{site}%2F&amp;site={site}".format(site=self.SITE))
-
-        # After we log in
-        r = self.s.post("https://sso.debian.org/cgi-bin/dacs/dacs_authenticate", allow_redirects=False, params={
-            "USERNAME": self.username,
-            "PASSWORD": self.password,
-            "DACS_BROWSER": 1,
-            "ENABLE_AUTH_HANDLERS": 1,
-            "DACS_JURISDICTION": "DEBIAN",
-            "DACS_AUTH_SUCCESS_HANDLER": success_handler,
-            "DACS_ERROR_URL": error_url,
-        })
-        self.assertEqual(self.want_redirect_location(r), "/sso/login?url=https%3A%2F%2F{site}%2F&amp;site={site}".format(site=self.SITE))
-        # self.fail("FIXME: not finished, and it doesn't really end this way")
+        self.assertEqual(error_url, next_url)
 
 
 class TestSSO(TestDACSSite, unittest.TestCase):
