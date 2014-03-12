@@ -61,11 +61,6 @@ class DACSUserBackend(django.contrib.auth.backends.RemoteUserBackend):
     """
     RemoteUserBackend customised to create User objects from Person
     """
-    JURISDICTION_DOMAIN_MAP = {
-        "DEBIAN": "@debian.org",
-        "ALIOTH": "@users.alioth.debian.org",
-    }
-
     def split_dacs_user(self, username):
         return DACSInfo(*username.split(":"))
 
@@ -76,4 +71,7 @@ class DACSUserBackend(django.contrib.auth.backends.RemoteUserBackend):
         """
         # Take the username out of DACS parts
         info = self.split_dacs_user(username)
-        return info.username + self.JURISDICTION_DOMAIN_MAP[info.jurisdiction]
+        if '@' in info.username:
+            return info.username
+        else:
+            return info.username + "@debian.org"
