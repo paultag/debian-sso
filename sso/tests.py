@@ -8,7 +8,7 @@ class SSOTestCase(TestCase):
         response = c.get(reverse('sso_login'))
         self.assertEquals(response.status_code, 200)
         self.assertIsNone(response.context["dacs_user"])
-        self.assert_('<form name="loginForm"' in response.content)
+        self.assert_('<form id="webpasswordLoginForm"' in response.content)
         self.assert_('<h1>Access denied.</h1>' not in response.content)
 
         # When authenticated, we get a logout button
@@ -31,7 +31,7 @@ class SSOTestCase(TestCase):
         self.assertEquals(response.status_code, 200)
         self.assertIsNone(response.context["dacs_user"])
         self.assertEquals(response.context["next_url"], "/sso/login?site=CONTRIBUTORS")
-        self.assert_('<form name="loginForm"' in response.content)
+        self.assert_('<form id="webpasswordLoginForm"' in response.content)
         self.assert_('<h1>Access denied.</h1>' not in response.content)
 
         # The login form with auth transfer has a next url that points to us,
@@ -41,7 +41,7 @@ class SSOTestCase(TestCase):
         self.assertEquals(response.status_code, 200)
         self.assertIsNone(response.context["dacs_user"])
         self.assertEquals(response.context["next_url"], "/sso/login?url=http%3A%2F%2Fwww.example.org&site=CONTRIBUTORS")
-        self.assert_('<form name="loginForm"' in response.content)
+        self.assert_('<form id="webpasswordLoginForm"' in response.content)
         self.assert_('<h1>Access denied.</h1>' not in response.content)
 
         # The login form with auth transfer, when already logged in, initiates
@@ -73,7 +73,7 @@ class SSOTestCase(TestCase):
         self.assertIsNotNone(response.context["dacs_error"])
         self.assertIsNone(response.context["dacs_error_url"])
         self.assert_('<h1>Login required</h1>' in response.content)
-        self.assert_('<form name="loginForm"' in response.content)
+        self.assert_('<form id="webpasswordLoginForm"' in response.content)
         self.assert_('For access to' not in response.content)
 
         response = c.get(reverse('sso_acs_error'), data={
@@ -83,14 +83,14 @@ class SSOTestCase(TestCase):
         self.assertEquals(response.context["dacs_error_url"], "http://www.example.org")
         self.assert_('<h1>Login required</h1>' in response.content)
         self.assert_('For access to <tt>http://www.example.org' in response.content)
-        self.assert_('<form name="loginForm"' in response.content)
+        self.assert_('<form id="webpasswordLoginForm"' in response.content)
 
         response = c.get(reverse('sso_acs_error'), data={"DACS_ERROR_CODE": "903"})
         self.assertEquals(response.status_code, 200)
         self.assertIsNotNone(response.context["dacs_error"])
         self.assertIsNone(response.context["dacs_error_url"])
         self.assert_('<h1>Access denied, user access revoked</h1>' in response.content)
-        self.assert_('<form name="loginForm"' in response.content)
+        self.assert_('<form id="webpasswordLoginForm"' in response.content)
         self.assert_('For access to' not in response.content)
 
     def test_logout_nourl(self):
@@ -99,15 +99,15 @@ class SSOTestCase(TestCase):
         response = c.get(reverse("sso_logout"), DACS_USERNAME="foo")
         self.assertEquals(response.status_code, 302)
         self.assertEquals(response["Location"], "https://sso.debian.org/cgi-bin/dacs/dacs_signout")
-        self.assertEquals(c.cookies["nataraja"].value, '["https://contributors.debian.org/cgi-bin/dacs/dacs_signout", "https://nm.debian.org/cgi-bin/dacs/dacs_signout", "http://testserver/"]')
+        self.assertEquals(c.cookies["nataraja"].value, '["https://contributors.debian.org/logout", "https://nm.debian.org/logout", "http://testserver/"]')
         # Follow the redirect dance
         response = c.get(reverse("sso_logout"))
         self.assertEquals(response.status_code, 302)
-        self.assertEquals(response["Location"], "https://contributors.debian.org/cgi-bin/dacs/dacs_signout")
-        self.assertEquals(c.cookies["nataraja"].value, '["https://nm.debian.org/cgi-bin/dacs/dacs_signout", "http://testserver/"]')
+        self.assertEquals(response["Location"], "https://contributors.debian.org/logout")
+        self.assertEquals(c.cookies["nataraja"].value, '["https://nm.debian.org/logout", "http://testserver/"]')
         response = c.get(reverse("sso_logout"))
         self.assertEquals(response.status_code, 302)
-        self.assertEquals(response["Location"], "https://nm.debian.org/cgi-bin/dacs/dacs_signout")
+        self.assertEquals(response["Location"], "https://nm.debian.org/logout")
         self.assertEquals(c.cookies["nataraja"].value, '["http://testserver/"]')
         response = c.get(reverse("sso_logout"))
         self.assertEquals(response.status_code, 302)
@@ -128,15 +128,15 @@ class SSOTestCase(TestCase):
         response = c.get(reverse("sso_logout"), data={"url": "http://www.example.org"}, DACS_USERNAME="foo")
         self.assertEquals(response.status_code, 302)
         self.assertEquals(response["Location"], "https://sso.debian.org/cgi-bin/dacs/dacs_signout")
-        self.assertEquals(c.cookies["nataraja"].value, '["https://contributors.debian.org/cgi-bin/dacs/dacs_signout", "https://nm.debian.org/cgi-bin/dacs/dacs_signout", "http://www.example.org"]')
+        self.assertEquals(c.cookies["nataraja"].value, '["https://contributors.debian.org/logout", "https://nm.debian.org/logout", "http://www.example.org"]')
         # Follow the redirect dance
         response = c.get(reverse("sso_logout"))
         self.assertEquals(response.status_code, 302)
-        self.assertEquals(response["Location"], "https://contributors.debian.org/cgi-bin/dacs/dacs_signout")
-        self.assertEquals(c.cookies["nataraja"].value, '["https://nm.debian.org/cgi-bin/dacs/dacs_signout", "http://www.example.org"]')
+        self.assertEquals(response["Location"], "https://contributors.debian.org/logout")
+        self.assertEquals(c.cookies["nataraja"].value, '["https://nm.debian.org/logout", "http://www.example.org"]')
         response = c.get(reverse("sso_logout"))
         self.assertEquals(response.status_code, 302)
-        self.assertEquals(response["Location"], "https://nm.debian.org/cgi-bin/dacs/dacs_signout")
+        self.assertEquals(response["Location"], "https://nm.debian.org/logout")
         self.assertEquals(c.cookies["nataraja"].value, '["http://www.example.org"]')
         response = c.get(reverse("sso_logout"))
         self.assertEquals(response.status_code, 302)

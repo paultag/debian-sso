@@ -200,7 +200,7 @@ class TestFederatedServiceMixin(TestDACSSite):
 
         # Then we get the form
         self.assertEqual(r.status_code, 200)
-        self.assertTrue('<form name="loginForm"' in r.text)
+        self.assertTrue('<form id="webpasswordLoginForm"' in r.text)
         mo = re.search(r'<input type="hidden" name="DACS_AUTH_SUCCESS_HANDLER" value="(?P<url>[^"]+)">', r.text)
         self.assertIsNotNone(mo)
         success_handler = mo.group("url")
@@ -218,7 +218,7 @@ class TestFederatedServiceMixin(TestDACSSite):
                        fed=self.FEDERATION,
                        hostname=self.hostname))
         self.assertEqual(r.status_code, 200)
-        self.assertTrue('<form name="loginForm"' in r.text)
+        self.assertTrue('<form id="webpasswordLoginForm"' in r.text)
 
     def test_login_required_when_logged_in(self):
         self.do_sso_login()
