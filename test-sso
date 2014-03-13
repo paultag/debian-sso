@@ -27,9 +27,12 @@ class TestMixin():
         import configparser
         self.config = configparser.ConfigParser()
         self.config.read("test-sso.cfg")
-        self.username = self.config["auth"]["username"]
-        self.password = self.config["auth"]["password"]
-        self.dacs_user = "DACS:DEBIANORG::DEBIAN:{}".format(self.username)
+        self.auth = {}
+        for auth in "webpassword", "alioth":
+            self.auth[auth] = {}
+            self.auth[auth]["user"] = self.config[auth]["username"]
+            self.auth[auth]["pass"] = self.config[auth]["password"]
+            self.auth[auth]["dacs_user"] = "DACS:DEBIANORG::DEBIAN:{}".format(self.auth[auth]["user"])
 
         # Browser session
         self.s = requests.Session()
@@ -46,7 +49,7 @@ class TestMixin():
             self.fail("Response was {} instead of a 302 redirect".format(r.status_code))
         return r.headers["Location"]
 
-    def want_dacs_cookie_info(self, r):
+    def want_dacs_cookie_info(self, r, auth_id="webpassword"):
         """
         Given a requests.Response, ensure that it contains DACS cookie info and
         parse it into a dict {
@@ -56,7 +59,7 @@ class TestMixin():
             domain: 'cookie_domain'
         }
         """
-        self.assertIn("{}=".format(self.dacs_user), r.headers["Set-Cookie"])
+        self.assertIn("{}=".format(self.auth[auth_id]["dacs_user"]), r.headers["Set-Cookie"])
         mo = self.re_dacs_cookie.search(r.headers["Set-Cookie"])
         self.assertIsNotNone(mo)
         # There should be no cookie domain, because we are not using subdomains
@@ -64,7 +67,7 @@ class TestMixin():
         self.assertIsNone(mo.group("domain"))
         return mo.groupdict()
 
-    def do_sso_login(self):
+    def do_sso_login(self, auth_id="webpassword"):
         """
         Log into sso.debian.org, set self.sso_cookie_info and return the dacs
         credentials that we got as parsed by want_dacs_cookie_info
@@ -72,15 +75,16 @@ class TestMixin():
         r = self.s.get("https://sso.debian.org/cgi-bin/dacs/dacs_authenticate", params={
             "DACS_JURISDICTION": "DEBIAN",
             "DACS_BROWSER": "1", # FIXME: what is this?
-            "USERNAME": self.username,
-            "PASSWORD": self.password,
+            "USERNAME": self.auth[auth_id]["user"],
+            "PASSWORD": self.auth[auth_id]["pass"],
+            "AUTH_ID": auth_id,
         })
         self.assertEqual(r.status_code, 200)
-        self.sso_cookie_info = self.want_dacs_cookie_info(r)
-        self.assertEqual("DACS:DEBIANORG::DEBIAN:{}".format(self.username), self.sso_cookie_info["name"])
+        self.sso_cookie_info = self.want_dacs_cookie_info(r, auth_id)
+        self.assertEqual(self.auth[auth_id]["dacs_user"], self.sso_cookie_info["name"])
         return self.sso_cookie_info
 
-    def do_auth_transfer(self, federation):
+    def do_auth_transfer(self, federation, auth_id="webpassword"):
         """
         Assuming we are logged in with sso.debian.org, perform auth transfer to
         another federation and return the new cookie info for that federation
@@ -97,7 +101,7 @@ class TestMixin():
         }, params={
             "OPERATION": "EXPORT",
             "TARGET_FEDERATION": federation,
-            "DACS_IDENTITY": "DEBIANORG::DEBIAN:{}".format(self.username),
+            "DACS_IDENTITY": self.auth[auth_id]["dacs_user"],
             "TRANSFER_SUCCESS_URL": "https://www.example.org",
             # "TRANSFER_ERROR_URL": "http://www.ifailed.debian.org",
         })
@@ -107,7 +111,7 @@ class TestMixin():
         # Second half of auth transfer, on federation site
         r = self.s.get(r.headers["Location"], allow_redirects=False)
         self.assertEqual(self.want_redirect_location(r), "https://www.example.org")
-        info = self.want_dacs_cookie_info(r)
+        info = self.want_dacs_cookie_info(r, auth_id)
         # DEBIANORG or {self.FEDERATION}?
         self.assertEqual("DACS:DEBIANORG::DEBIAN:{}".format(self.username), info["name"])
         return info
@@ -162,25 +166,7 @@ class TestFederatedServiceMixin(TestDACSSite):
         """
         info = self.do_sso_login()
 
-        ## Initiate auth transfer
-        r = self.s.get("https://sso.debian.org/cgi-bin/dacs/dacs_auth_transfer", allow_redirects=False, headers={
-            "Cookie": "{name}={value}".format(**info)
-        }, params={
-            "OPERATION": "EXPORT",
-            "TARGET_FEDERATION": self.FEDERATION,
-            "DACS_IDENTITY": "DEBIANORG::DEBIAN:{}".format(self.username),
-            "TRANSFER_SUCCESS_URL": "https://www.example.org",
-            # "TRANSFER_ERROR_URL": "http://www.ifailed.debian.org",
-        })
-        if r.status_code == 200: print(r.text)
-        self.assertTrue(self.want_redirect_location(r).startswith(
-            "{baseurl}:443/cgi-bin/dacs/dacs_auth_transfer?OPERATION=IMPORT&".format(**self.fed_info)))
-
-        r = self.s.get(r.headers["Location"], allow_redirects=False)
-        self.assertEqual(self.want_redirect_location(r), "https://www.example.org")
-        info = self.want_dacs_cookie_info(r)
-        # DEBIANORG or {self.FEDERATION}?
-        self.assertEqual("DACS:DEBIANORG::DEBIAN:{}".format(self.username), info["name"])
+        atinfo = self.do_auth_transfer(self, self.FEDERATION)
 
     def test_auth_transfer_when_logged_out(self):
         """
@@ -245,7 +231,7 @@ class TestSSO(TestDACSSite, unittest.TestCase):
         r = self.s.get("https://sso.debian.org/cgi-bin/dacs/dacs_current_credentials", allow_redirects=False)
         self.assertEqual(r.status_code, 200)
         self.assertTrue('You are authenticated within federation <span class="fed_name">DEBIANORG</span> as' in r.text)
-        self.assertTrue('<li><b>DEBIAN:{}</b><br>'.format(self.username) in r.text)
+        self.assertTrue('<li><b>DEBIAN:{}</b><br>'.format(self.auth["webpassword"]["user"]) in r.text)
 
     def test_visit_sso(self):
         """
@@ -286,8 +272,8 @@ class TestCONTRIBUTORS(TestFederatedServiceMixin, unittest.TestCase):
         self.assertTrue("You are not currently logged in", r.text)
 
 
-class TestNAGIOS(TestFederatedServiceMixin, unittest.TestCase):
-    FEDERATION = "NAGIOS"
+# class TestNAGIOS(TestFederatedServiceMixin, unittest.TestCase):
+#     FEDERATION = "NAGIOS"
 
 if __name__ == '__main__':
     unittest.main()
