@@ -4,7 +4,7 @@ import unittest
 import requests
 import re
 import logging
-from urllib.parse import quote_plus, urlparse
+from urllib.parse import quote_plus, urlparse, parse_qs
 
 log = logging.getLogger("testsso")
 
@@ -228,10 +228,16 @@ class TestFederatedServiceMixin(TestDACSSite):
                    "&DACS_USER_AGENT=Foo&DACS_REQUEST_METHOD=GET"
                    "&DACS_ERROR_URL=https%3A%2F%2Fwww.example.org%2F".format(
                        fed=self.FEDERATION,
-                       hostname=self.hostname))
-        self.assertTrue(self.want_redirect_location(r).startswith(
-            "https://{}:443/cgi-bin/dacs/dacs_auth_transfer?OPERATION=IMPORT&".format(self.hostname)))
-
+                       hostname=self.hostname), allow_redirects=False)
+        target = urlparse(self.want_redirect_location(r))
+        self.assertEqual(target.scheme, "https")
+        self.assertEqual(target.netloc, "sso.debian.org")
+        self.assertEqual(target.path, "/cgi-bin/dacs/dacs_auth_transfer")
+        qs = parse_qs(target.query)
+        self.assertEqual(qs["DACS_IDENTITY"], [self.auth[self.AUTH_ID]["dacs_user"]])
+        self.assertEqual(qs["OPERATION"], ["EXPORT"])
+        self.assertEqual(qs["TARGET_FEDERATION"], [self.FEDERATION])
+        self.assertEqual(qs["TRANSFER_SUCCESS_URL"], ["https://www.example.org/"])
 
 class TestSSO(TestDACSSite):
     def test_sso_login(self):
