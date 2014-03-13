@@ -93,6 +93,18 @@ class SSOTestCase(TestCase):
         self.assert_('<form id="webpasswordLoginForm"' in response.content)
         self.assert_('For access to' not in response.content)
 
+    def test_acs_error_for_auth_transfer(self):
+        # When authenticated and auth is required on another federation, we get
+        # auth transfer
+        c = Client()
+        response = c.get(reverse('sso_acs_error'), data={
+            "DACS_FEDERATION": "NM",
+            "DACS_ERROR_CODE": "902",
+            "DACS_ERROR_URL": "http://www.example.org",
+        }, DACS_USERNAME="logged-in-name", DACS_IDENTITY="f-o-o")
+        self.assertEquals(response.status_code, 302)
+        self.assertEquals(response["Location"], "https://sso.debian.org/cgi-bin/dacs/dacs_auth_transfer?DACS_IDENTITY=f-o-o&OPERATION=EXPORT&TARGET_FEDERATION=NM&TRANSFER_SUCCESS_URL=http%3A%2F%2Fwww.example.org")
+
     def test_logout_nourl(self):
         # Plain logout, no next_url
         c = Client()

@@ -40,13 +40,32 @@ def _dump_args(request, tag):
     #     for k, v in request.COOKIES.iteritems():
     #         print("COOKIE {} -> {}".format(k, v), file=fd)
 
+def make_auth_transfer_response(target_federation, dacs_identity, next_url):
+    return redirect("https://sso.debian.org/cgi-bin/dacs/dacs_auth_transfer?" + urlencode({
+        "OPERATION": "EXPORT",
+        "TARGET_FEDERATION": target_federation,
+        "DACS_IDENTITY": dacs_identity,
+        "TRANSFER_SUCCESS_URL": next_url,
+    }))
+
 def acs_error(request):
     """
     Access denied / login required page
     """
     from .dacs_codes import error_for_code
     _dump_args(request, "acs_error")
+    dacs_user = request.environ.get("DACS_USERNAME", None)
+    next_federation = request.GET.get("DACS_FEDERATION", None)
     next_url = request.GET.get("DACS_ERROR_URL", None)
+
+    if dacs_user is not None and next_url is not None \
+       and request.GET.get("DACS_ERROR_CODE", None) == "902" \
+       and next_federation != "DEBIANORG":
+        # ACS error because someone who is logged on SSO tried to access a
+        # restricted page on a federation where auth has not been trasnfedered
+        # yet. Trigger auth transfer.
+        return make_auth_transfer_response(next_federation, request.environ["DACS_IDENTITY"], next_url)
+
     return render(request, "sso/login.html", {
         "dacs_error": error_for_code(request.GET.get("DACS_ERROR_CODE", None)),
         "dacs_error_url": request.GET.get("DACS_ERROR_URL"),
@@ -98,12 +117,7 @@ def login(request):
                 next_url = request.build_absolute_uri(reverse("home"))
 
             # Initiate auth transfer
-            return redirect("https://sso.debian.org/cgi-bin/dacs/dacs_auth_transfer?" + urlencode({
-                "OPERATION": "EXPORT",
-                "TARGET_FEDERATION": site,
-                "DACS_IDENTITY": request.environ["DACS_IDENTITY"],
-                "TRANSFER_SUCCESS_URL": next_url,
-            }))
+            return make_auth_transfer_response(site, request.environ["DACS_IDENTITY"], next_url)
         elif next_url:
             return redirect(next_url)
     elif site:
