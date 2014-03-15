@@ -153,9 +153,13 @@ class TestDACSSite(TestMixin):
                 self.fail("{} denies access to dacs_signout".format(self.baseurl))
         if r.status_code == 404:
             self.fail("{} does not have dacs_signout".format(self.baseurl))
-        self.assertEqual(self.want_redirect_location(r),
-                         "https://sso.debian.org/sso/logout?DACS_VERSION=1.4&DACS_FEDERATION={}&DACS_JURISDICTION=DEBIAN".format(federation))
-                         #"https://sso.debian.org/sso/logout?DACS_VERSION=1.4&DACS_FEDERATION=DEBIANORG&DACS_JURISDICTION=DEBIAN")
+        target = urlparse(self.want_redirect_location(r))
+        self.assertEqual(target.scheme, "https")
+        self.assertEqual(target.netloc, "sso.debian.org")
+        self.assertEqual(target.path, "/sso/logout")
+        qs = parse_qs(target.query)
+        self.assertEqual(qs["DACS_FEDERATION"], [federation])
+        self.assertEqual(qs["DACS_JURISDICTION"], ["DEBIAN"])
 
     def test_logout_when_logged_out(self):
         r = self.s.get("{}/cgi-bin/dacs/dacs_signout".format(self.baseurl), allow_redirects=False)
