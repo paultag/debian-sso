@@ -1,0 +1,56 @@
+{% extends "debsso-base.html" %}
+{% load url from future %}
+
+{% block head_resources %}
+{{block.super}}
+<script src="{{STATIC_URL}}js/jquery.min.js"></script>
+<script>
+(function($) {
+function main()
+{
+  $("#logout_status li").each(function(idx, el) {
+    var el = $(el);
+    var progress = el.find("span.progress");
+    var name = el.attr("name");
+    var baseurl = el.attr("baseurl");
+    $.ajax({
+      url: baseurl + "/cgi-bin/dacs/dacs_signout",
+      type: "GET",
+      beforeSend: function(jqXHR, settings) {
+        progress.text("contacting server…");
+      },
+      success: function(data) {
+        progress.text("logged out.");
+      },
+      error: function(e) {
+        progress.text("failed: " + e);
+      },
+    });
+  });
+}
+
+$(document).ready(main);
+})(jQuery);
+</script>
+{% endblock %}
+
+{% block content %}
+
+<h1 class="announce">Debian Single Sign On - Fast logout</h1>
+
+<p>This only works if you have JavaScript enabled, which seems to be the case.
+If I am wrong, you can <a href="{% url 'sso_logout'
+%}?next_url={{url}}&javascript=no">use this link to logout"</a>.</p>
+
+<div class="logout_panel">
+  <h2>Debian login</h2>
+
+  <ul id="logout_status">
+    <li name="DEBIANORG" baseurl="https://sso.debian.org">https://sso.debian.org <span class="progress">Starting logout…</span></li>
+    {% for name, info in federations %}
+    <li name="{{name}}" baseurl="{{info.baseurl}}">{{info.baseurl}} <span class="progress">Starting logout…</span></li>
+    {% endfor %}
+  </ul>
+</div>
+
+{% endblock %}

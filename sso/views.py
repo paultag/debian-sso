@@ -138,10 +138,24 @@ def logout(request):
     Logout page
     """
     _dump_args(request, "logout")
+    next_url = request.GET.get("url", None)
+
+    # Can we use JavaScript?
+    has_javascript = request.GET.get("javascript", None)
+    if has_javascript is None:
+        has_javascript = request.COOKIES.get("javascript", None)
+    has_javascript = has_javascript == "yes"
+
+    if has_javascript:
+        # JS-based logout
+        return render(request, "sso/logout.html", {
+            "next_url": next_url,
+            "federations": settings.DEBIAN_FEDERATION.items(),
+        })
+
     dacs_user = request.environ.get("DACS_USERNAME", None)
 
     if dacs_user is not None:
-        next_url = request.GET.get("url", None)
         # http://en.wikipedia.org/wiki/Nataraja
         #
         # Nataraja is a depiction of the god Shiva as the cosmic dancer who
@@ -191,7 +205,6 @@ def logout(request):
             # We finished our dance and the last link did not send us away from
             # the logout url. Weird. Let's deal gracefully with it and send
             # them home, or wherever they wanted to be.
-            next_url = request.GET.get("url", None)
             if next_url:
                 return redirect(next_url)
             return redirect("home")

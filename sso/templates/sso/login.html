@@ -44,6 +44,10 @@ div.alioth_login {
 }
 
 </style>
+<script>
+// Figure out if we have javascript; if we do, we can speed up logout considerably
+document.cookie = 'javascript=yes; path=/';
+</script>
 {% endblock %}
 
 {% block content %}
