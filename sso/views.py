@@ -150,7 +150,7 @@ def logout(request):
         # JS-based logout
         return render(request, "sso/logout.html", {
             "next_url": next_url,
-            "federations": settings.DEBIAN_FEDERATION.items(),
+            "federations": [(name, info) for name, info in settings.DEBIAN_FEDERATION.iteritems() if not info.get("skip_logout_dance", None)],
         })
 
     dacs_user = request.environ.get("DACS_USERNAME", None)

@@ -3,6 +3,17 @@
 
 {% block head_resources %}
 {{block.super}}
+<style type="text/css">
+span.progress {
+  color: blue;
+}
+span.progress.done {
+  color: green;
+}
+span.progress.error {
+  color: red;
+}
+</style>
 <script src="{{STATIC_URL}}js/jquery.min.js"></script>
 <script>
 (function($) {
@@ -14,16 +25,18 @@ function main()
     var name = el.attr("name");
     var baseurl = el.attr("baseurl");
     $.ajax({
-      url: baseurl + "/cgi-bin/dacs/dacs_signout",
+      url: baseurl + "/cgi-bin/dacs/dacs_debian_cors_signout",
       type: "GET",
       beforeSend: function(jqXHR, settings) {
         progress.text("contacting server…");
       },
       success: function(data) {
+        progress.addClass("done");
         progress.text("logged out.");
       },
-      error: function(e) {
-        progress.text("failed: " + e);
+      error: function(jqXHR, textStatus, errorThrown) {
+        progress.addClass("error");
+        progress.text("" + textStatus + ".")
       },
     });
   });
@@ -39,16 +52,13 @@ $(document).ready(main);
 <h1 class="announce">Debian Single Sign On - Fast logout</h1>
 
 <p>This only works if you have JavaScript enabled, which seems to be the case.
-If I am wrong, you can <a href="{% url 'sso_logout'
-%}?next_url={{url}}&javascript=no">use this link to logout"</a>.</p>
+If I am wrong, you can <a href="{% url 'sso_logout' %}?next_url={{url}}&javascript=no">use this link to logout</a>.</p>
 
 <div class="logout_panel">
-  <h2>Debian login</h2>
-
   <ul id="logout_status">
-    <li name="DEBIANORG" baseurl="https://sso.debian.org">https://sso.debian.org <span class="progress">Starting logout…</span></li>
+    <li name="DEBIANORG" baseurl="https://sso.debian.org">https://sso.debian.org: <span class="progress">Starting logout…</span></li>
     {% for name, info in federations %}
-    <li name="{{name}}" baseurl="{{info.baseurl}}">{{info.baseurl}} <span class="progress">Starting logout…</span></li>
+    <li name="{{name}}" baseurl="{{info.baseurl}}">{{info.baseurl}}: <span class="progress">starting logout…</span></li>
     {% endfor %}
   </ul>
 </div>
