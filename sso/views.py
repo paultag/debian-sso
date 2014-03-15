@@ -141,10 +141,15 @@ def logout(request):
     next_url = request.GET.get("url", None)
 
     # Can we use JavaScript?
-    has_javascript = request.GET.get("javascript", None)
-    if has_javascript is None:
-        has_javascript = request.COOKIES.get("javascript", None)
-    has_javascript = has_javascript == "yes"
+    if request.COOKIES.get(b"nataraja", None):
+        # Do not attempt a javascript logout if we are in the middle of a
+        # logout redirect dance
+        has_javascript = False
+    else:
+        has_javascript = request.GET.get("javascript", None)
+        if has_javascript is None:
+            has_javascript = request.COOKIES.get("javascript", None)
+        has_javascript = has_javascript == "yes"
 
     if has_javascript:
         # JS-based logout
