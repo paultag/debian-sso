@@ -65,10 +65,10 @@ div.alioth_login {
 </div>
 {% endif %}
 
-{% if dacs_user %}
-Logged in as <b>{{dacs_user}}</b>.
+{% if request.user.is_authenticated %}
+Logged in as <b>{{request.user.email}}</b>.
 
-<form method="GET" action="/cgi-bin/dacs/dacs_signout">
+<form method="GET" action="{% url 'sso_logout' %}?url={{request.build_absolute_uri}}">
   <button name="logout">Logout...</button>
 </form>
 
