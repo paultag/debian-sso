@@ -5,9 +5,44 @@
 {{block.super}}
 <style type="text/css">
 div.login_form {
-  float: left;
   width: 45%;
+  border: 1pt dashed black;
+  padding-left: 2%;
+  padding-right: 2%;
+  min-width: 15em;
 }
+
+div.debian_login {
+  float: left;
+}
+
+div.alioth_login {
+  float: right;
+}
+
+.login_form form p {
+  padding-bottom: 1em;
+}
+
+.login_form label {
+  float: left;
+  width: 6em;
+  text-align: right;
+  margin-right: 1em;
+  clear: left;
+}
+
+.login_form span.button-padding {
+  float: left;
+  width: 6em;
+  margin-right: 1em;
+  clear: left;
+}
+
+.login_form input {
+  float: left;
+}
+
 </style>
 {% endblock %}
 
@@ -38,22 +73,26 @@ Logged in as <b>{{dacs_user}}</b>.
 </form>
 
 {% else %}
-<div class="login_form">
+<div class="login_form debian_login">
   <h2>Debian login</h2>
+
+  <p>You can set your SSO password on <a
+  href="https://db.debian.org/">https://db.debian.org/</a>. Note that it is
+  <em>different</em> from your db.debian.org password.</p>
+
   <form id="webpasswordLoginForm" method="POST" action="https://sso.debian.org/cgi-bin/dacs/dacs_authenticate">
-    <label for="USERNAME"><b>Username:</b><span class="form_required" title="Needed argument">*</span></label>
-    <br />
-    <input name="USERNAME" type="text" id="USERNAME" size="30" placeholder="username"><!-- default empty -->
-    <br />
-    <div class="description">Please enter your Debian Username.</div>
-    <br />
-    <label for="PASSWORD"><b>Password:</b><span class="form_required" title="Needed argument">*</span></label>
-    <br>
-    <input name="PASSWORD" type="password" id="PASSWORD" size="30" placeholder="password">
-    <br>
-    <div class="description">Please enter your password.</div>
-    <br>
-    <input type="submit" class="highlight" value="Login with debian.org account">
+    <p>
+      <label for="USERNAME">Username:</label>
+      <input name="USERNAME" type="text" id="USERNAME" size="15" placeholder="username">
+    </p>
+    <p>
+      <label for="PASSWORD">Password:</label>
+      <input name="PASSWORD" type="password" id="PASSWORD" size="15" placeholder="password">
+    </p>
+    <p>
+      <span class="button-padding">&nbsp;</span>
+      <input type="submit" class="highlight" value="Login with debian.org account">
+    </p>
     <input type="hidden" name="DACS_BROWSER" value="1">
     <input type="hidden" name="ENABLE_AUTH_HANDLERS" value="1">
     <input type="hidden" name="DACS_JURISDICTION" value="DEBIAN">
@@ -62,26 +101,25 @@ Logged in as <b>{{dacs_user}}</b>.
     <input type="hidden" name="DACS_AUTH_SUCCESS_HANDLER" value="{{next_url}}">
     <input type="hidden" name="DACS_ERROR_URL" value="{{next_url}}">
     {% endif %}
-    <p>You can set your SSO password on <a href="https://db.debian.org/">https://db.debian.org/</a>. Note that it is <em>different</em> from your db.debian.org password.</p>
   </form>
 </div>
 
-<div class="login_form">
+<div class="login_form alioth_login">
   <h2>Alioth login</h2>
+  <p>You can register an <a href="https://alioth.debian.org">Alioth</a> account <a href="https://alioth.debian.org/account/register.php">here</a>.</p>
   <form id="aliothLoginForm" method="POST" action="https://sso.debian.org/cgi-bin/dacs/dacs_authenticate">
-    <label for="USERNAME"><b>Username:</b><span class="form_required" title="Needed argument">*</span></label>
-    <br />
-    <input name="USERNAME" type="text" id="USERNAME" size="30" placeholder="username-guest"><!-- default empty -->
-    <br />
-    <div class="description">Please enter your Alioth Username, including -guest.</div>
-    <br />
-    <label for="PASSWORD"><b>Password:</b><span class="form_required" title="Needed argument">*</span></label>
-    <br>
-    <input name="PASSWORD" type="password" id="PASSWORD" size="30" placeholder="password">
-    <br>
-    <div class="description">Please enter your password.</div>
-    <br>
-    <input type="submit" class="highlight" value="Login with Alioth account">
+    <p>
+      <label for="USERNAME">Username:</label>
+      <input name="USERNAME" type="text" id="USERNAME" size="15" placeholder="username-guest">
+    </p>
+    <p>
+      <label for="PASSWORD">Password:</label>
+      <input name="PASSWORD" type="password" id="PASSWORD" size="15" placeholder="password">
+    </p>
+    <p>
+      <span class="button-padding">&nbsp;</span>
+      <input type="submit" class="highlight" value="Login with Alioth account">
+    </p>
     <input type="hidden" name="DACS_BROWSER" value="1">
     <input type="hidden" name="ENABLE_AUTH_HANDLERS" value="1">
     <input type="hidden" name="DACS_JURISDICTION" value="DEBIAN">
@@ -90,7 +128,6 @@ Logged in as <b>{{dacs_user}}</b>.
     <input type="hidden" name="DACS_AUTH_SUCCESS_HANDLER" value="{{next_url}}">
     <input type="hidden" name="DACS_ERROR_URL" value="{{next_url}}">
     {% endif %}
-    <p>You can register an <a href="https://alioth.debian.org">Alioth</a> account <a href="https://alioth.debian.org/account/register.php">here</a>.</p>
   </form>
 </div>
 {% endif %}
