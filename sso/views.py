@@ -120,6 +120,8 @@ def login(request):
             return make_auth_transfer_response(site, request.environ["DACS_IDENTITY"], next_url)
         elif next_url:
             return redirect(next_url)
+        else:
+            return redirect(reverse("home"))
     elif site:
         # Not authenticated, and auth transfer is needed after logging in
         query = { "site": site }
