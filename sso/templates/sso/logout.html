@@ -48,18 +48,40 @@ function main()
         progress.text("contacting server…");
       },
       success: function(data) {
-        if (/not previously logged in/.exec(data) && canary)
-          possibly_broken_cors();
-        progress.addClass("done");
-        progress.text(data);
+        if (/not previously logged in/.exec(data))
+        {
+          if (canary)
+            possibly_broken_cors();
+          progress.addClass("done");
+          progress.text("not previously logged in.");
+        } else {
+          progress.text("Double checking…");
+          $.ajax({
+            url: baseurl + "/cgi-bin/dacs/dacs_debian_cors_signout",
+            type: "GET",
+            success: function(data) {
+              if (/not previously logged in/.exec(data))
+              {
+                progress.addClass("done");
+                progress.text("done.");
+              } else {
+                possibly_broken_cors();
+              }
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+              progress.addClass("error");
+              progress.text("" + textStatus + ".")
+            },
+            xhrFields: { withCredentials: true },
+            crossDomain: true,
+          });
+        }
       },
       error: function(jqXHR, textStatus, errorThrown) {
         progress.addClass("error");
         progress.text("" + textStatus + ".")
       },
-      xhrFields: {
-        withCredentials: true
-      },
+      xhrFields: { withCredentials: true },
       crossDomain: true,
     });
   });
