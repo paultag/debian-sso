@@ -22,14 +22,26 @@ var logged_in = true;
 {% else %}
 var logged_in = false;
 {% endif %}
+var next_url = "{{url}}";
+
 function possibly_broken_cors()
 {
   $("#suggest_classic_logout").show();
 }
 
+function logout_succeeded()
+{
+  if (next_url)
+    window.location = next_url;
+  else
+    window.location = "{% url 'home' %}";
+}
+
 function main()
 {
   $("#suggest_classic_logout").hide();
+
+  var logout_todo = {{federations|length}} + 1;
 
   $("#logout_status li").each(function(idx, el) {
     var el = $(el);
@@ -52,8 +64,12 @@ function main()
         {
           if (canary)
             possibly_broken_cors();
+          else
+            --logout_todo;
           progress.addClass("done");
           progress.text("not previously logged in.");
+          if (logout_todo == 0)
+            logout_succeeded();
         } else {
           progress.text("Double checking…");
           $.ajax({
@@ -64,6 +80,9 @@ function main()
               {
                 progress.addClass("done");
                 progress.text("done.");
+                --logout_todo;
+                if (logout_todo == 0)
+                  logout_succeeded();
               } else {
                 possibly_broken_cors();
               }
