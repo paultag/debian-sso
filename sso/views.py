@@ -139,6 +139,7 @@ def logout(request):
     """
     _dump_args(request, "logout")
     next_url = request.GET.get("url", None)
+    dacs_user = request.environ.get("DACS_USERNAME", None)
 
     # Can we use JavaScript?
     if request.COOKIES.get(b"nataraja", None):
@@ -156,9 +157,8 @@ def logout(request):
         return render(request, "sso/logout.html", {
             "next_url": next_url,
             "federations": [(name, info) for name, info in settings.DEBIAN_FEDERATION.iteritems() if not info.get("skip_logout_dance", None)],
+            "logged_in": request.user.is_authenticated,
         })
-
-    dacs_user = request.environ.get("DACS_USERNAME", None)
 
     if dacs_user is not None:
         # http://en.wikipedia.org/wiki/Nataraja

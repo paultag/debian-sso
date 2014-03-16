@@ -17,13 +17,30 @@ span.progress.error {
 <script src="{{STATIC_URL}}js/jquery.min.js"></script>
 <script>
 (function($) {
+{% if logged_in %}
+var logged_in = true;
+{% else %}
+var logged_in = false;
+{% endif %}
+function possibly_broken_cors()
+{
+  $("#suggest_classic_logout").show();
+}
+
 function main()
 {
+  $("#suggest_classic_logout").hide();
+
   $("#logout_status li").each(function(idx, el) {
     var el = $(el);
     var progress = el.find("span.progress");
     var name = el.attr("name");
     var baseurl = el.attr("baseurl");
+    // If we are logged to sso but the sso item reports not being already
+    // logged in via AJAX, there is a chance that cookies are not being sent
+    // via CORS: detect it and suggest the user to use the nataraja logout
+    // method
+    var canary = el.attr("canary") == "true" && logged_in;
     $.ajax({
       url: baseurl + "/cgi-bin/dacs/dacs_debian_cors_signout",
       type: "GET",
@@ -31,6 +48,8 @@ function main()
         progress.text("contacting server…");
       },
       success: function(data) {
+        if (/not previously logged in/.exec(data) && canary)
+          possibly_broken_cors();
         progress.addClass("done");
         progress.text(data);
       },
@@ -60,11 +79,17 @@ If I am wrong, you can <a href="{% url 'sso_logout' %}?next_url={{url}}&javascri
 
 <div class="logout_panel">
   <ul id="logout_status">
-    <li name="DEBIANORG" baseurl="https://sso.debian.org">https://sso.debian.org: <span class="progress">Starting logout…</span></li>
+    <li name="DEBIANORG" baseurl="https://sso.debian.org" canary="true">https://sso.debian.org: <span class="progress">Starting logout…</span></li>
     {% for name, info in federations %}
     <li name="{{name}}" baseurl="{{info.baseurl}}">{{info.baseurl}}: <span class="progress">starting logout…</span></li>
     {% endfor %}
   </ul>
+</div>
+
+<div id="suggest_classic_logout">
+  <b>*warning*</b>
+  Either JavaScript is not really enabled, or sending cookies via CORS does not
+  work on this brower. If you see this message, you want to <a href="{% url 'sso_logout' %}?next_url={{url}}&javascript=no">use this link to logout</a>.</p>
 </div>
 
 {% endblock %}
