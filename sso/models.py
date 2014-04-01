@@ -4,7 +4,7 @@ from django.contrib.auth.models import BaseUserManager, PermissionsMixin
 from django.utils import timezone
 
 class UserManager(BaseUserManager):
-    def create_user(self, email, password=None, **other_fields):
+    def create_user(self, email, first_name, last_name, password=None, **other_fields):
         if not email:
             raise ValueError('Users must have an email address')
         user = self.model(
