@@ -27,9 +27,11 @@ class User(PermissionsMixin, models.Model):
     last_login = models.DateTimeField(_('last login'), default=timezone.now)
     is_staff = models.BooleanField(default=False)
     is_active = True
+    first_name = models.CharField(_('first name'), max_length=100, blank=True)
+    last_name = models.CharField(_('last name'), max_length=100, blank=True)
 
     def get_full_name(self):
-        return self.email
+        return self.first_name + " " self.last_name
 
     def get_short_name(self):
         return self.email
@@ -39,6 +41,12 @@ class User(PermissionsMixin, models.Model):
 
     def get_username(self):
         return self.email
+
+    def get_first_name(self):
+        return self.first_name
+
+    def get_last_name(self):
+        return self.last_name
 
     def is_anonymous(self):
         return False
