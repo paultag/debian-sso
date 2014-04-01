@@ -2,11 +2,13 @@ import django.contrib.auth.backends
 import django.contrib.auth.middleware
 from django.conf import settings
 from collections import namedtuple
+import ldap
 
 # Name the various bits of information DACS gives us
 DACSInfo = namedtuple('DACSInfo', ('federation', 'unknown1', "jurisdiction", "username"))
 
 TEST_REMOTE_USER = getattr(settings, "DACS_TEST_USERNAME", None)
+LDAP_MAP = getattr(settings, "LDAP_MAP", {})
 
 class DACSRemoteUserMiddleware(django.contrib.auth.middleware.RemoteUserMiddleware):
     header = 'REMOTE_USER'
@@ -53,7 +55,22 @@ class DACSRemoteUserMiddleware(django.contrib.auth.middleware.RemoteUserMiddlewa
         user = auth.authenticate(remote_user=dacs_user)
         if user:
             # User is valid.  Set request.user and persist user in the session
-            # by logging the user in.
+            # by logging the user in. Also update the user data from LDAP.
+            import ldap
+            uri = dn = user_strip = None
+            for ldapbackend in LDAP_MAP:
+                if user.email.endswith(ldapbackend):
+                    uri = LDAP_MAP[ldapbackend]['LDAP_URI']
+                    dn = LDAP_MAP[ldapbackend]['DN']
+                    user_strip = ldapbackend
+            if uri:
+                c = ldap.initialize(uri)
+                u = user.email.replace(user_strip, '')
+                s = c.search_s(dn, ldap.SCOPE_SUBTREE, '(uid=%s)' % u)
+                if len(s) == 1:
+                    user.first_name = s[0][1]['cn'][0]
+                    user.last_name = s[0][1]['sn'][0]
+                    user.save()
             request.user = user
             auth.login(request, user)
 
