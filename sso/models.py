@@ -31,7 +31,7 @@ class User(PermissionsMixin, models.Model):
     last_name = models.CharField(_('last name'), max_length=100, blank=True)
 
     def get_full_name(self):
-        return self.first_name + " " self.last_name
+        return self.first_name + " " + self.last_name
 
     def get_short_name(self):
         return self.email
