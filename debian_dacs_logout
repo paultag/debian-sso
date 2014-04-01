@@ -1,0 +1,25 @@
+#!/usr/bin/python
+
+from __future__ import print_function
+from __future__ import absolute_import
+from __future__ import division
+from __future__ import unicode_literals
+import os
+import re
+from urlparse import parse_qs
+
+redirect_to = "https://sso.debian.org/sso/logout"
+qs = os.environ.get("QUERY_STRING", None)
+if qs is not None:
+    qs = parse_qs(qs)
+    if "url" in qs:
+        redirect_to = qs["url"][0]
+
+print("Status: 302")
+print("Location: {}".format(redirect_to))
+re_find_cookies = re.compile(r"(?P<key>[^=]+)=(?P<value>[^;]+)\s*")
+for mo in re_find_cookies.finditer(os.environ.get("HTTP_COOKIE", "")):
+    key = mo.group("key")
+    if not key.startswith("DACS"): continue
+    print("Set-Cookie: {}=; Expires=Thu, 01-Jan-1970 00:00:01 GMT;".format(key))
+print()

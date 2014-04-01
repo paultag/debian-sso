@@ -1,0 +1,320 @@
+#!/usr/bin/python3.3
+
+import unittest
+import requests
+import re
+import logging
+from urllib.parse import quote_plus, urlparse, parse_qs
+
+log = logging.getLogger("testsso")
+
+# Copied from debsso/settings.py
+DEBIAN_FEDERATION = {
+    "CONTRIBUTORS": {
+        "baseurl": "https://contributors.debian.org",
+    },
+    "NM": {
+        "baseurl": "https://nm.debian.org",
+    },
+    "NAGIOS": {
+        "baseurl": "https://nagios.debian.org",
+    },
+}
+
+class TestMixin():
+    re_dacs_cookie = re.compile(r"\b(?P<name>DACS:[^=]+)=(?P<value>[^;]+);(?: path=(?P<path>[^;]+);)?(?: domain=(?P<domain>[^;]+);)?")
+
+    def setUp(self):
+        super().setUp()
+        # Read auth info
+        import configparser
+        self.config = configparser.ConfigParser()
+        self.config.read("test-sso.cfg")
+        self.auth = {}
+        for auth in "webpassword", "alioth":
+            self.auth[auth] = {}
+            self.auth[auth]["user"] = self.config[auth]["username"]
+            self.auth[auth]["pass"] = self.config[auth]["password"]
+            if auth == "webpassword":
+                self.auth[auth]["dacs_user"] = "DEBIANORG::DEBIAN:{}".format(self.auth[auth]["user"])
+            elif auth == "alioth":
+                self.auth[auth]["dacs_user"] = "DEBIANORG::DEBIAN:{}@users.alioth.debian.org".format(self.auth[auth]["user"])
+            else:
+                raise RuntimeError("Unknown auth type: " + auth)
+
+        # Browser session
+        self.s = requests.Session()
+
+        # Cookie info we got when logging in
+        self.sso_cookie_info = None
+
+    def want_redirect_location(self, r):
+        """
+        Make sure that response r contains a redirect, and return its Location
+        """
+        if r.status_code != 302:
+            if r.text: print(r.text[:1000])
+            self.fail("Response was {} instead of a 302 redirect".format(r.status_code))
+        return r.headers["Location"]
+
+    def want_dacs_cookie_info(self, r, auth_id=None):
+        """
+        Given a requests.Response, ensure that it contains DACS cookie info and
+        parse it into a dict {
+            name: 'cookie_name',
+            value: 'cookie_value',
+            path: 'cookie_path',
+            domain: 'cookie_domain'
+        }
+        """
+        if auth_id is None: auth_id = self.AUTH_ID
+        self.assertIn("DACS:{}=".format(self.auth[auth_id]["dacs_user"]), r.headers["Set-Cookie"])
+        mo = self.re_dacs_cookie.search(r.headers["Set-Cookie"])
+        self.assertIsNotNone(mo)
+        # There should be no cookie domain, because we are not using subdomains
+        # on sso.d.o
+        self.assertIsNone(mo.group("domain"))
+        return mo.groupdict()
+
+    def do_sso_login(self, auth_id=None):
+        """
+        Log into sso.debian.org, set self.sso_cookie_info and return the dacs
+        credentials that we got as parsed by want_dacs_cookie_info
+        """
+        if auth_id is None: auth_id = self.AUTH_ID
+        r = self.s.get("https://sso.debian.org/cgi-bin/dacs/dacs_authenticate", params={
+            "DACS_JURISDICTION": "DEBIAN",
+            "DACS_BROWSER": "1", # FIXME: what is this?
+            "USERNAME": self.auth[auth_id]["user"],
+            "PASSWORD": self.auth[auth_id]["pass"],
+            "AUTH_ID": auth_id,
+        })
+        self.assertEqual(r.status_code, 200)
+        self.sso_cookie_info = self.want_dacs_cookie_info(r, auth_id)
+        self.assertEqual("DACS:{}".format(self.auth[auth_id]["dacs_user"]), self.sso_cookie_info["name"])
+        return self.sso_cookie_info
+
+    def do_auth_transfer(self, federation, auth_id=None):
+        """
+        Assuming we are logged in with sso.debian.org, perform auth transfer to
+        another federation and return the new cookie info for that federation
+        """
+        if auth_id is None: auth_id = self.AUTH_ID
+
+        if self.sso_cookie_info is None:
+            self.fail("Auth transfer invoked when not logged in")
+
+        #print("Transfering", auth_id, self.auth[auth_id]["dacs_user"], "credentials from SSO to", federation)
+
+        fed_info = DEBIAN_FEDERATION.get(federation, None)
+        if fed_info is None: self.fail("{}: unknown federation".format(federation))
+
+        # First half of auth transfer, on sso.debian.org
+        r = self.s.get("https://sso.debian.org/cgi-bin/dacs/dacs_auth_transfer", allow_redirects=False, headers={
+            "Cookie": "{name}={value}".format(**self.sso_cookie_info)
+        }, params={
+            "OPERATION": "EXPORT",
+            "TARGET_FEDERATION": federation,
+            "DACS_IDENTITY": self.auth[auth_id]["dacs_user"],
+            "TRANSFER_SUCCESS_URL": "https://www.example.org",
+            # "TRANSFER_ERROR_URL": "http://www.ifailed.debian.org",
+        })
+        self.assertTrue(self.want_redirect_location(r).startswith(
+            "{baseurl}:443/cgi-bin/dacs/dacs_auth_transfer?OPERATION=IMPORT&".format(**fed_info)))
+
+        # Second half of auth transfer, on federation site
+        r = self.s.get(r.headers["Location"], allow_redirects=False)
+        self.assertEqual(self.want_redirect_location(r), "https://www.example.org")
+        info = self.want_dacs_cookie_info(r, auth_id)
+        # DEBIANORG or {self.FEDERATION}?
+        self.assertEqual("DACS:{}".format(self.auth[auth_id]["dacs_user"]), info["name"])
+        return info
+
+class TestDACSSite(TestMixin):
+    def setUp(self):
+        super().setUp()
+        if hasattr(self, "FEDERATION"):
+            self.baseurl = DEBIAN_FEDERATION[self.FEDERATION]["baseurl"]
+        else:
+            self.baseurl = "https://sso.debian.org"
+
+    def test_logout_when_logged_in(self):
+        self.do_sso_login()
+
+        if hasattr(self, "FEDERATION"):
+            self.do_auth_transfer(self.FEDERATION)
+            federation = self.FEDERATION
+        else:
+            federation = "DEBIANORG"
+
+        r = self.s.get("{}/cgi-bin/dacs/dacs_signout".format(self.baseurl), allow_redirects=False)
+        if r.status_code == 302:
+            if r.headers["Location"].startswith("https://sso.debian.org/sso/acs_error"):
+                self.fail("{} denies access to dacs_signout".format(self.baseurl))
+        if r.status_code == 404:
+            self.fail("{} does not have dacs_signout".format(self.baseurl))
+        target = urlparse(self.want_redirect_location(r))
+        self.assertEqual(target.scheme, "https")
+        self.assertEqual(target.netloc, "sso.debian.org")
+        self.assertEqual(target.path, "/sso/logout")
+        qs = parse_qs(target.query)
+        self.assertEqual(qs["DACS_FEDERATION"], [federation])
+        self.assertEqual(qs["DACS_JURISDICTION"], ["DEBIAN"])
+
+    def test_logout_when_logged_out(self):
+        r = self.s.get("{}/cgi-bin/dacs/dacs_signout".format(self.baseurl), allow_redirects=False)
+        if r.status_code == 302:
+            if r.headers["Location"].startswith("https://sso.debian.org/sso/acs_error"):
+                self.fail("{} denies access to dacs_signout".format(self.baseurl))
+        if r.status_code == 404:
+            self.fail("{} does not have dacs_signout".format(self.baseurl))
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue("You are not authenticated within federation" in r.text)
+
+
+class TestFederatedServiceMixin(TestDACSSite):
+    def setUp(self):
+        super().setUp()
+        self.fed_info = DEBIAN_FEDERATION[self.FEDERATION]
+        self.hostname = urlparse(self.baseurl).hostname
+
+    def test_auth_transfer_when_logged_in(self):
+        """
+        Login, then initiate auth transfer to another domain
+        """
+        info = self.do_sso_login()
+        atinfo = self.do_auth_transfer(self.FEDERATION)
+
+    def test_auth_transfer_when_logged_out(self):
+        """
+        Visit the login page asking for auth transfer, but not being logged in:
+        we get the login page
+        """
+        # If we visit the login url with a site= argument and we are not logged
+        # in
+        r = self.s.get("https://sso.debian.org/sso/login", allow_redirects=False, params={
+            "site": self.FEDERATION,
+            "url": "{baseurl}/".format(**self.fed_info),
+        })
+
+        next_url = "/sso/login?url={baseurl}%2F&amp;site={fed}".format(
+            fed=self.FEDERATION,
+            baseurl=quote_plus(self.fed_info["baseurl"]),
+        )
+
+        # Then we get the form
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue('<form id="webpasswordLoginForm"' in r.text)
+        mo = re.search(r'<input type="hidden" name="DACS_AUTH_SUCCESS_HANDLER" value="(?P<url>[^"]+)">', r.text)
+        self.assertIsNotNone(mo)
+        success_handler = mo.group("url")
+        self.assertEqual(success_handler, next_url)
+        mo = re.search(r'<input type="hidden" name="DACS_ERROR_URL" value="(?P<url>[^"]+)">', r.text)
+        self.assertIsNotNone(mo)
+        error_url = mo.group("url")
+        self.assertEqual(error_url, next_url)
+
+    def test_login_required_when_logged_out(self):
+        r = self.s.get("https://sso.debian.org/sso/acs_error?DACS_ERROR_CODE=902"
+                   "&DACS_VERSION=1.4&DACS_FEDERATION={fed}&DACS_JURISDICTION=DEBIAN&DACS_HOSTNAME={hostname}"
+                   "&DACS_USER_AGENT=Foo&DACS_REQUEST_METHOD=GET"
+                   "&DACS_ERROR_URL=https%3A%2F%2Fwww.example.org%2F".format(
+                       fed=self.FEDERATION,
+                       hostname=self.hostname))
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue('<form id="webpasswordLoginForm"' in r.text)
+
+    def test_login_required_when_logged_in(self):
+        self.do_sso_login()
+
+        r = self.s.get("https://sso.debian.org/sso/acs_error?DACS_ERROR_CODE=902"
+                   "&DACS_VERSION=1.4&DACS_FEDERATION={fed}&DACS_JURISDICTION=DEBIAN&DACS_HOSTNAME={hostname}"
+                   "&DACS_USER_AGENT=Foo&DACS_REQUEST_METHOD=GET"
+                   "&DACS_ERROR_URL=https%3A%2F%2Fwww.example.org%2F".format(
+                       fed=self.FEDERATION,
+                       hostname=self.hostname), allow_redirects=False)
+        target = urlparse(self.want_redirect_location(r))
+        self.assertEqual(target.scheme, "https")
+        self.assertEqual(target.netloc, "sso.debian.org")
+        self.assertEqual(target.path, "/cgi-bin/dacs/dacs_auth_transfer")
+        qs = parse_qs(target.query)
+        self.assertEqual(qs["DACS_IDENTITY"], [self.auth[self.AUTH_ID]["dacs_user"]])
+        self.assertEqual(qs["OPERATION"], ["EXPORT"])
+        self.assertEqual(qs["TARGET_FEDERATION"], [self.FEDERATION])
+        self.assertEqual(qs["TRANSFER_SUCCESS_URL"], ["https://www.example.org/"])
+
+class TestSSO(TestDACSSite):
+    def test_sso_login(self):
+        r = self.s.get("https://sso.debian.org/cgi-bin/dacs/dacs_current_credentials", allow_redirects=False)
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue("You are not authenticated within federation <tt><b>DEBIANORG</b></tt>" in r.text)
+
+        self.do_sso_login()
+
+        r = self.s.get("https://sso.debian.org/cgi-bin/dacs/dacs_current_credentials", allow_redirects=False)
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue('You are authenticated within federation <span class="fed_name">DEBIANORG</span> as' in r.text)
+        dacs_user = self.auth[self.AUTH_ID]["dacs_user"].split("::")[1]
+        self.assertTrue('<li><b>{}</b><br>'.format(dacs_user) in r.text)
+
+    def test_visit_sso(self):
+        """
+        Login, visit a page and ensure we are logged in
+        """
+        info = self.do_sso_login()
+        r = self.s.get("https://sso.debian.org/", headers={
+            "Cookie": "{name}={value}".format(**info)
+        })
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue("You are currently logged in" in r.text)
+
+        r = self.s.get("https://sso.debian.org/cgi-bin/dacs/dacs_signout", allow_redirects=False)
+        self.assertEqual(self.want_redirect_location(r),
+                         "https://sso.debian.org/sso/logout?DACS_VERSION=1.4&DACS_FEDERATION=DEBIANORG&DACS_JURISDICTION=DEBIAN")
+
+    def test_anonymous_visit_sso(self):
+        r = self.s.get("https://sso.debian.org/", allow_redirects=False)
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue("You are not currently logged in", r.text)
+
+class TestSSOWebpassword(TestSSO, unittest.TestCase):
+    AUTH_ID = "webpassword"
+
+class TestSSOAlioth(TestSSO, unittest.TestCase):
+    AUTH_ID = "alioth"
+
+
+class TestNM(TestFederatedServiceMixin):
+    FEDERATION = "NM"
+
+    def test_anonymous_visit_nm(self):
+        r = self.s.get("https://nm.debian.org/", allow_redirects=False)
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue("You are not currently logged in", r.text)
+
+class TestNMWebpassword(TestNM, unittest.TestCase):
+    AUTH_ID = "webpassword"
+
+class TestNMAlioth(TestNM, unittest.TestCase):
+    AUTH_ID = "alioth"
+
+
+class TestContributors(TestFederatedServiceMixin):
+    FEDERATION = "CONTRIBUTORS"
+
+    def test_anonymous_visit_contributors(self):
+        r = self.s.get("https://contributors.debian.org/", allow_redirects=False)
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue("You are not currently logged in", r.text)
+
+class TestContributorsWebpassword(TestContributors, unittest.TestCase):
+    AUTH_ID = "webpassword"
+
+class TestContributorsAlioth(TestContributors, unittest.TestCase):
+    AUTH_ID = "alioth"
+
+# class TestNAGIOS(TestFederatedServiceMixin, unittest.TestCase):
+#     FEDERATION = "NAGIOS"
+
+if __name__ == '__main__':
+    unittest.main()

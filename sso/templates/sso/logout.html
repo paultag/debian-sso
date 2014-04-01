@@ -1,0 +1,136 @@
+{% extends "debsso-base.html" %}
+{% load url from future %}
+
+{% block head_resources %}
+{{block.super}}
+<style type="text/css">
+span.progress {
+  color: blue;
+}
+span.progress.done {
+  color: green;
+}
+span.progress.error {
+  color: red;
+}
+</style>
+<script src="{{STATIC_URL}}js/jquery.min.js"></script>
+<script>
+(function($) {
+{% if logged_in %}
+var logged_in = true;
+{% else %}
+var logged_in = false;
+{% endif %}
+var next_url = "{{next_url}}";
+
+function possibly_broken_cors()
+{
+  $("#suggest_classic_logout").show();
+}
+
+function logout_succeeded()
+{
+  if (next_url)
+    window.location = next_url;
+  else
+    window.location = "{% url 'home' %}";
+}
+
+function main()
+{
+  $("#suggest_classic_logout").hide();
+
+  var logout_todo = {{federations|length}} + 1;
+
+  $("#logout_status li").each(function(idx, el) {
+    var el = $(el);
+    var progress = el.find("span.progress");
+    var name = el.attr("name");
+    var baseurl = el.attr("baseurl");
+    // If we are logged to sso but the sso item reports not being already
+    // logged in via AJAX, there is a chance that cookies are not being sent
+    // via CORS: detect it and suggest the user to use the nataraja logout
+    // method
+    var canary = el.attr("canary") == "true" && logged_in;
+    $.ajax({
+      url: baseurl + "/cgi-bin/dacs/dacs_debian_cors_signout",
+      type: "GET",
+      beforeSend: function(jqXHR, settings) {
+        progress.text("contacting server…");
+      },
+      success: function(data) {
+        if (/not previously logged in/.exec(data))
+        {
+          if (canary)
+            possibly_broken_cors();
+          else
+            --logout_todo;
+          progress.addClass("done");
+          progress.text("not previously logged in.");
+          if (logout_todo == 0)
+            logout_succeeded();
+        } else {
+          progress.text("Double checking…");
+          $.ajax({
+            url: baseurl + "/cgi-bin/dacs/dacs_debian_cors_signout",
+            type: "GET",
+            success: function(data) {
+              if (/not previously logged in/.exec(data))
+              {
+                progress.addClass("done");
+                progress.text("done.");
+                --logout_todo;
+                if (logout_todo == 0)
+                  logout_succeeded();
+              } else {
+                possibly_broken_cors();
+              }
+            },
+            error: function(jqXHR, textStatus, errorThrown) {
+              progress.addClass("error");
+              progress.text("" + textStatus + ".")
+            },
+            xhrFields: { withCredentials: true },
+            crossDomain: true,
+          });
+        }
+      },
+      error: function(jqXHR, textStatus, errorThrown) {
+        progress.addClass("error");
+        progress.text("" + textStatus + ".")
+      },
+      xhrFields: { withCredentials: true },
+      crossDomain: true,
+    });
+  });
+}
+
+$(document).ready(main);
+})(jQuery);
+</script>
+{% endblock %}
+
+{% block content %}
+
+<h1 class="announce">Debian Single Sign On - Fast logout</h1>
+
+<p>This only works if you have JavaScript enabled, which seems to be the case.
+If I am wrong, you can <a href="{% url 'sso_logout' %}?next_url={{url}}&javascript=no">use this link to logout</a>.</p>
+
+<div class="logout_panel">
+  <ul id="logout_status">
+    <li name="DEBIANORG" baseurl="https://sso.debian.org" canary="true">https://sso.debian.org: <span class="progress">Starting logout…</span></li>
+    {% for name, info in federations %}
+    <li name="{{name}}" baseurl="{{info.baseurl}}">{{info.baseurl}}: <span class="progress">starting logout…</span></li>
+    {% endfor %}
+  </ul>
+</div>
+
+<div id="suggest_classic_logout">
+  <b>*warning*</b>
+  Either JavaScript is not really enabled, or sending cookies via CORS does not
+  work on this brower. If you see this message, you want to <a href="{% url 'sso_logout' %}?next_url={{url}}&javascript=no">use this link to logout</a>.</p>
+</div>
+
+{% endblock %}

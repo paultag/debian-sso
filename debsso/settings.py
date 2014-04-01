@@ -94,6 +94,20 @@ STATIC_URL = '/static/'
 
 AUTH_USER_MODEL = 'sso.User'
 
+# Map federation names to site base URLs
+DEBIAN_FEDERATION = {
+    "CONTRIBUTORS": {
+        "baseurl": "https://contributors.debian.org",
+    },
+    "NM": {
+        "baseurl": "https://nm.debian.org",
+    },
+    "NAGIOS": {
+        "baseurl": "https://nagios.debian.org",
+        "skip_logout_dance": True,
+    },
+}
+
 # Try importing local settings from local_settings.py, if we can't, it's just
 # fine, use defaults from this file
 try:

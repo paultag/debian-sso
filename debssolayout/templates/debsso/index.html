@@ -7,7 +7,14 @@
 <h1>Debian Single Signon</h1>
 
 {% if request.user.is_authenticated %}
-<p>You are currently logged in as {{request.user.username}}.</p>
+<p>You are currently logged in as {{request.user.email}}.</p>
+
+<p>These sites will now recognise you:</p>
+
+<ul>
+  <li><a href="{% url 'sso_login' %}?url=https://contributors.debian.org/&site=CONTRIBUTORS">Debian Contributors</a></li>
+  <li><a href="{% url 'sso_login' %}?url=https://nm.debian.org/&site=NM">Debian New Member Process</a></li>
+</ul>
 
 <p><a href="{% url 'sso_logout' %}">Logout</a></p>
 {% else %}

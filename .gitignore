@@ -1,3 +1,4 @@
 /debsso/local_settings.py
 *.swp
 *.pyc
+test-sso.cfg
