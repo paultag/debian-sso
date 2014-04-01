@@ -1,0 +1,6 @@
+[submodule "django-cors-headers"]
+	path = django-cors-headers
+	url = https://github.com/ottoyiu/django-cors-headers.git
+[submodule "django-oauth-toolkit"]
+	path = django-oauth-toolkit
+	url = https://github.com/evonove/django-oauth-toolkit.git
