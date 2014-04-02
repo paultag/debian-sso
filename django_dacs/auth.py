@@ -63,6 +63,7 @@ class DACSRemoteUserMiddleware(django.contrib.auth.middleware.RemoteUserMiddlewa
                     uri = LDAP_MAP[ldapbackend]['LDAP_URI']
                     dn = LDAP_MAP[ldapbackend]['DN']
                     user_strip = ldapbackend
+                    break
             if uri:
                 c = ldap.initialize(uri)
                 u = user.email.replace(user_strip, '')
