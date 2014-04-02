@@ -9,6 +9,7 @@ DACSInfo = namedtuple('DACSInfo', ('federation', 'unknown1', "jurisdiction", "us
 
 TEST_REMOTE_USER = getattr(settings, "DACS_TEST_USERNAME", None)
 LDAP_MAP = getattr(settings, "LDAP_MAP", {})
+LDAP_TIMEOUT = getattr(settings, "LDAP_TIMEOUT", 1)
 
 class DACSRemoteUserMiddleware(django.contrib.auth.middleware.RemoteUserMiddleware):
     header = 'REMOTE_USER'
@@ -67,8 +68,11 @@ class DACSRemoteUserMiddleware(django.contrib.auth.middleware.RemoteUserMiddlewa
             if uri:
                 c = ldap.initialize(uri)
                 u = user.email.replace(user_strip, '')
-                s = c.search_s(dn, ldap.SCOPE_SUBTREE, '(uid=%s)' % u)
-                if len(s) == 1:
+                try:
+                    s = c.search_st(base=dn, scope=ldap.SCOPE_SUBTREE, filterstr='(uid=%s)' % u, timeout=LDAP_TIMEOUT)
+                except:
+                    s = None
+                if s and len(s) == 1:
                     user.first_name = s[0][1]['cn'][0]
                     user.last_name = s[0][1]['sn'][0]
                     user.save()

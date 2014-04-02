@@ -30,3 +30,5 @@ LDAP_MAP = {
         'DN': 'ou=Users,dc=alioth,dc=debian,dc=org',
     },
 }
+
+LDAP_TIMEOUT = 1
