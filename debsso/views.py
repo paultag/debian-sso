@@ -17,6 +17,8 @@ def _dump_args(request, tag):
         print("--- {}".format(now.strftime("%Y-%m-%d %H:%M:%S")), file=fd)
         for k, v in request.GET.iteritems():
             print("GET {} -> {}".format(k, v), file=fd)
+        for k, v in request.POST.iteritems():
+            print("POST {} -> {}".format(k, v), file=fd)
         for k, v in request.environ.iteritems():
             print("ENV {} -> {}".format(k, v), file=fd)
         for k, v in request.COOKIES.iteritems():
@@ -24,8 +26,8 @@ def _dump_args(request, tag):
 
 class ApiEndpoint(ProtectedResourceView):
     def get(self, request, *args, **kwargs):
-        if request.user.is_authenticated():
-            _dump_args(request, "api")
+        if request.resource_owner:
+            user = request.resource_owner
 #            scopes = request.scopes
 #            resp = {}
 #            if "openid" in scopes:
@@ -40,13 +42,13 @@ class ApiEndpoint(ProtectedResourceView):
 #                resp['email_verified'] = "true"
 #            if "profile" in scopes:
 #                resp['provider'] = request.user.get_provider()
-            resp = {'id': request.user.get_username(),
+            resp = {'id': user.get_username(),
                     'kind': 'debsso#personOpenIdConnect',
-                    'sub': request.user.get_username(),
-                    'name': request.user.get_full_name(),
-                    'given_name': request.user.get_first_name(),
-                    'family_name': request.user.get_last_name(),
-                    'email': request.user.get_email(),
+                    'sub': user.get_username(),
+                    'name': user.get_full_name(),
+                    'given_name': user.get_first_name(),
+                    'family_name': user.get_last_name(),
+                    'email': request.resource_owner.email,
                     'email_verified': 'true'}
         else:
             # we should never hit the protected API endpoint w/o a user
