@@ -4,3 +4,5 @@ needed repository for oauth2:
 
 extra dependencies for oauth2:
  python-six
+ python-django-braces
+ python-oauthlib >= 0.6
