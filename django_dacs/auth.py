@@ -75,6 +75,7 @@ class DACSRemoteUserMiddleware(django.contrib.auth.middleware.RemoteUserMiddlewa
                 if s and len(s) == 1:
                     user.first_name = s[0][1]['cn'][0]
                     user.last_name = s[0][1]['sn'][0]
+                    user.privider = ldapbackend
                     user.save()
             request.user = user
             auth.login(request, user)

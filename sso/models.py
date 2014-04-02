@@ -4,7 +4,7 @@ from django.contrib.auth.models import BaseUserManager, PermissionsMixin
 from django.utils import timezone
 
 class UserManager(BaseUserManager):
-    def create_user(self, email, first_name, last_name, password=None, **other_fields):
+    def create_user(self, email, first_name, last_name, provider, password=None, **other_fields):
         if not email:
             raise ValueError('Users must have an email address')
         user = self.model(
@@ -29,9 +29,13 @@ class User(PermissionsMixin, models.Model):
     is_active = True
     first_name = models.CharField(_('first name'), max_length=100, blank=True)
     last_name = models.CharField(_('last name'), max_length=100, blank=True)
+    provider = models.CharField(_('sso auth provider'), max_length=100, blank=True)
 
     def get_email(self):
         return self.email
+
+    def get_provider(self):
+        return self.provider
 
     def get_full_name(self):
         return self.first_name + " " + self.last_name
