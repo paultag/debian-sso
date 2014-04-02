@@ -20,15 +20,3 @@ DATABASES = {
     }
 }
 
-LDAP_MAP = {
-    '@debian.org': {
-        'LDAP_URI': 'ldaps://db.debian.org',
-        'DN': 'ou=users,dc=debian,dc=org',
-    },
-    '@users.alioth.debian.org': {
-        'LDAP_URI': 'ldaps://alioth.debian.org',
-        'DN': 'ou=Users,dc=alioth,dc=debian,dc=org',
-    },
-}
-
-LDAP_TIMEOUT = 1

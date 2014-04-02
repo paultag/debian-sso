@@ -108,6 +108,19 @@ DEBIAN_FEDERATION = {
     },
 }
 
+LDAP_MAP = {
+    '@debian.org': {
+        'LDAP_URI': 'ldaps://db.debian.org',
+        'DN': 'ou=users,dc=debian,dc=org',
+    },
+    '@users.alioth.debian.org': {
+        'LDAP_URI': 'ldaps://alioth.debian.org',
+        'DN': 'ou=Users,dc=alioth,dc=debian,dc=org',
+    },
+}
+
+LDAP_TIMEOUT = 1
+
 # Try importing local settings from local_settings.py, if we can't, it's just
 # fine, use defaults from this file
 try:
