@@ -30,6 +30,9 @@ class User(PermissionsMixin, models.Model):
     first_name = models.CharField(_('first name'), max_length=100, blank=True)
     last_name = models.CharField(_('last name'), max_length=100, blank=True)
 
+    def get_email(self):
+        return self.email
+
     def get_full_name(self):
         return self.first_name + " " + self.last_name
 
