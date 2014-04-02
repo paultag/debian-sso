@@ -1,3 +1,6 @@
 needed repository for oauth2:
  https://github.com/ottoyiu/django-cors-headers.git
  https://github.com/evonove/django-oauth-toolkit.git
+
+extra dependencies for oauth2:
+ python-six
