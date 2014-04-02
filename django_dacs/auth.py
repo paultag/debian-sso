@@ -73,8 +73,22 @@ class DACSRemoteUserMiddleware(django.contrib.auth.middleware.RemoteUserMiddlewa
                 except:
                     s = None
                 if s and len(s) == 1:
-                    user.first_name = s[0][1]['cn'][0]
-                    user.last_name = s[0][1]['sn'][0]
+                    userinfo = s[0][1]
+                    if "sn" in userinfo:
+                        user.first_name = userinfo['cn'][0]
+                        user.last_name = userinfo['sn'][0]
+                    else:
+                        # FIXME: Alioth doesn't split first/last names, so we
+                        # make it up, and we do it wrong.
+                        # What we really should do, is not to use first/last
+                        # names, which is just wrong no matter how you look at
+                        # it, and just go for a display_name, if oauth2 and
+                        # whatever's downstream of it are ok with it.
+                        if " " in userinfo["cn"][0]:
+                            user.first_name, user.last_name = userinfo["cn"][0].split(None, 1)
+                        else:
+                            user.first_name = userinfo["cn"][0]
+                            user.last_name = "-"
                     user.provider = ldapbackend
                     user.save()
             request.user = user
