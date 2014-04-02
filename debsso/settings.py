@@ -45,7 +45,7 @@ INSTALLED_APPS = (
     'sso',
 )
 
-DEFAULTS = {
+OAUTH2_PROVIDER = {
     'SCOPES': {"read": "Reading scope", "write": "Writing scope", "openid": "basic Debian SSO", "email": "your email address", "profile": "your Debian profile information"},
     'OPENID_SCOPE': 'openid',
     'EMAIL_SCOPE': 'email',
