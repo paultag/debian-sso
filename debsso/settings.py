@@ -46,6 +46,14 @@ INSTALLED_APPS = (
     'sso',
 )
 
+DEFAULTS = {
+    'SCOPES': {"read": "Reading scope", "write": "Writing scope", "openid": "basic Debian SSO", "email": "your email address", "profile": "your Debian profile information"},
+    'OPENID_SCOPE': 'openid',
+    'EMAIL_SCOPE': 'email',
+    'PROFILE_SCOPE': 'profile',
+}
+
+
 MIDDLEWARE_CLASSES = (
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
