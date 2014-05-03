@@ -1,4 +1,4 @@
-#!/usr/bin/python3.3
+#!/usr/bin/python3.4
 
 import unittest
 import requests
@@ -47,6 +47,9 @@ class TestMixin():
 
         # Cookie info we got when logging in
         self.sso_cookie_info = None
+
+    def tearDown(self):
+        self.s.close()
 
     def want_redirect_location(self, r):
         """
