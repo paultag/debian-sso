@@ -16,6 +16,9 @@ DEBIAN_FEDERATION = {
     "NM": {
         "baseurl": "https://nm.debian.org",
     },
+    "TRACKER": {
+        "baseurl": "https://tracker.debian.org",
+    },
     "NAGIOS": {
         "baseurl": "https://nagios.debian.org",
     },
@@ -314,6 +317,21 @@ class TestContributorsWebpassword(TestContributors, unittest.TestCase):
     AUTH_ID = "webpassword"
 
 class TestContributorsAlioth(TestContributors, unittest.TestCase):
+    AUTH_ID = "alioth"
+
+
+class TestTracker(TestFederatedServiceMixin):
+    FEDERATION = "TRACKER"
+
+    def test_anonymous_visit_contributors(self):
+        r = self.s.get("https://tracker.debian.org/", allow_redirects=False)
+        self.assertEqual(r.status_code, 200)
+        self.assertTrue("You are not currently logged in", r.text)
+
+class TestTrackerWebpassword(TestTracker, unittest.TestCase):
+    AUTH_ID = "webpassword"
+
+class TestTrackerAlioth(TestTracker, unittest.TestCase):
     AUTH_ID = "alioth"
 
 # class TestNAGIOS(TestFederatedServiceMixin, unittest.TestCase):

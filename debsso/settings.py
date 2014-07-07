@@ -113,6 +113,9 @@ DEBIAN_FEDERATION = {
         "baseurl": "https://nagios.debian.org",
         "skip_logout_dance": True,
     },
+    "TRACKER": {
+        "baseurl": "https://tracker.debian.org",
+    },
 }
 
 LDAP_MAP = {
