@@ -8,6 +8,7 @@ For the full list of settings and their values, see
 https://docs.djangoproject.com/en/1.6/ref/settings/
 """
 from django.conf import global_settings
+import dj_database_url
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 import os
@@ -127,6 +128,13 @@ LDAP_MAP = {
         'LDAP_URI': 'ldaps://alioth.debian.org',
         'DN': 'ou=Users,dc=alioth,dc=debian,dc=org',
     },
+}
+
+DATABASES = {
+    'default': dj_database_url.parse(os.environ.get(
+        'DJANGO_DATABASE_URL',
+        'sqlite:///{}'.format(os.path.join(BASE_DIR, 'db.sqlite3'))
+    ))
 }
 
 LDAP_TIMEOUT = 1

@@ -7,3 +7,4 @@ six
 django-braces
 oauthlib>=0.6
 south
+dj_database_url
