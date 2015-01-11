@@ -1,0 +1,9 @@
+Django==1.6
+
+-e git://github.com/evonove/django-oauth-toolkit.git#egg=django-oauth-toolkit
+-e git://github.com/ottoyiu/django-cors-headers.git#egg=django-cors-headers
+
+six
+django-braces
+oauthlib>=0.6
+south
